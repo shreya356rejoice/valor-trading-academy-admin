@@ -34,7 +34,7 @@ useLayoutEffect(() => {
   }
 
   getTotalRevenueData().then((data)=>{
-    setTotalRevenueData(data.payload)
+    setTotalRevenueData(data?.payload)
   })
 }, []);
 const stats = [

@@ -13,3 +13,7 @@ export const SignIn = async (data: { email: string; password: string; name: stri
     );
     return res;
 }
+
+export const signOut = async () => {
+ localStorage.removeItem('token');
+}

@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getChapters, getCourses } from '@/components/api/course';
 import { CourseChapters } from './course-chapters';
+import CourseClientWrapper from './_components/course-client-wrapper';
 
 // Add metadata for the page
 export const metadata = {
@@ -25,27 +26,10 @@ export async function generateStaticParams() {
   }
 }
 
-export default async function CourseChaptersPage({ params }: PageProps) {
+export default function CourseChaptersPage({ params }: PageProps) {
   const { courseId } = params;
-  
-  try {
-    const response = await getChapters(courseId); 
-    const chapters = response.payload?.data?.filter(
-      (chapter: any) => chapter.courseId._id === courseId
-    ) || [];
-    
-    // Get course name from the first chapter if available
-    const courseName = chapters[0]?.courseId?.CourseName || '';
-    
-    return (
-      <CourseChapters 
-        initialChapters={chapters} 
-        courseId={courseId} 
-        courseName={courseName} 
-      />
-    );
-  } catch (error) {
-    console.error('Error loading chapters:', error);
-    notFound();
-  }
+
+  return (
+    <CourseClientWrapper courseId={courseId} />
+  );
 }

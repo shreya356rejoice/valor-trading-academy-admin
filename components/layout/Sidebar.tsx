@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
@@ -24,7 +24,9 @@ import {
   User,
   LogOut,
   ChevronDown,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Gift,
+  Waves
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -56,20 +58,25 @@ const sidebarItems = [
     icon: MessageCircle
   },
   {
+    title: "Coupons",
+    href: "/dashboard/coupons",
+    icon: Gift,
+  },
+  {
     title: 'Payments',
     href: '/dashboard/payments',
     icon: CreditCard
   },
-  {
-    title: 'Notifications',
-    href: '/dashboard/notifications',
-    icon: Bell
-  },
-  {
-    title: 'Referrals',
-    href: '/dashboard/referrals',
-    icon: UserPlus
-  },
+  // {
+  //   title: 'Notifications',
+  //   href: '/dashboard/notifications',
+  //   icon: Bell
+  // },
+  // {
+  //   title: 'Referrals',
+  //   href: '/dashboard/referrals',
+  //   icon: UserPlus
+  // },
   {
     title: 'Newsletter',
     href: '/dashboard/newsletter',
@@ -81,25 +88,45 @@ const sidebarItems = [
     icon: MessageSquare
   },
   {
-    title: 'Content',
-    href: '/dashboard/content',
-    icon: SettingsIcon
+    title: "Utility",
+    href: "/dashboard/utility",
+    icon: Waves,
   },
+  // {
+  //   title: 'Content',
+  //   href: '/dashboard/content',
+  //   icon: SettingsIcon
+  // },
 ];
 
 export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [user, setUser] = useState<{ name?: string; email?: string }>({});
   const pathname = usePathname();
   const router = useRouter();
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem("user");
     router.push('/');
   };
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
   };
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch (e) {
+          console.error("Failed to parse user from localStorage", e);
+        }
+      }
+    }
+  }, []);
 
   return (
     <div className={cn(
@@ -188,8 +215,8 @@ export default function Sidebar() {
                 </Avatar>
                 {!isCollapsed && (
                   <div className="text-left">
-                    <p className="text-sm font-medium">Admin User</p>
-                    <p className="text-xs text-muted-foreground">admin@example.com</p>
+                    <p className="text-sm font-medium">{user?.name}</p>
+                    <p className="text-xs text-muted-foreground">{user?.email}</p>
                   </div>
                 )}
               </div>
@@ -197,14 +224,14 @@ export default function Sidebar() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align={isCollapsed ? "start" : "end"} side={isCollapsed ? "right" : "top"}>
-            <DropdownMenuItem>
+            {/* <DropdownMenuItem>
               <User className="mr-2 h-4 w-4" />
               <span>Profile</span>
             </DropdownMenuItem>
             <DropdownMenuItem>
               <SettingsIcon className="mr-2 h-4 w-4" />
               <span>Settings</span>
-            </DropdownMenuItem>
+            </DropdownMenuItem> */}
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Logout</span>
