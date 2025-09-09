@@ -40,11 +40,21 @@ interface Customer {
   birthday: string;
   gender: string;
   createdAt: string;
-  roleId: {
-    _id: string;
-    name: string;
-  };
+  // roleId: {
+  //   _id: string;
+  //   name: string;
+  // };
 }
+
+const formatDate = (date: Date | string | undefined): string => {
+  if (!date) return '';
+  try {
+    const d = new Date(date);
+    return isNaN(d.getTime()) ? '' : format(d, 'PPP');
+  } catch (e) {
+    return '';
+  }
+};
 
 interface CustomerApiResponse {
   success: boolean;
@@ -112,7 +122,7 @@ const customerFormSchema = z.object({
     .max(100, "Location must be at most 100 characters")
     .regex(/^[a-zA-Z\s,-]+$/, "Location can only contain letters, spaces, commas, and hyphens"),
 
-  roleId: z.string().min(1, "Please select a role"),
+  // roleId: z.string().min(1, "Please select a role"),
 });
 
 type CustomerFormValues = z.infer<typeof customerFormSchema>;
@@ -138,6 +148,8 @@ export default function Customers() {
   const [itemsPerPage, setItemsPerPage] = useState(8);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(customerFormSchema),
@@ -148,7 +160,7 @@ export default function Customers() {
       gender: "male",
       birthday: undefined,
       location: "",
-      roleId: "",
+      // roleId: "",
     },
   });
 
@@ -208,7 +220,7 @@ export default function Customers() {
       gender: customer.gender as "male" | "female" | "other",
       birthday: new Date(customer.birthday),
       location: customer.location,
-      roleId: customer.roleId._id,
+      // roleId: customer.roleId._id,
     });
     setIsEditMode(true);
     setIsAddCustomerOpen(true);
@@ -223,10 +235,14 @@ export default function Customers() {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = async () => {
-    if (!selectedCustomer) return;
+  const confirmDelete = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!selectedCustomer || isDeleting) return;
 
     try {
+      setIsDeleting(true);
       await deleteCustomer(selectedCustomer.id);
       await fetchCustomersData();
       setDeleteDialogOpen(false);
@@ -235,6 +251,8 @@ export default function Customers() {
     } catch (error) {
       console.error("Error deleting customer:", error);
       toast.error("Failed to delete customer. Please try again.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -247,10 +265,14 @@ export default function Customers() {
     setStatusDialogOpen(true);
   };
 
-  const confirmStatusToggle = async () => {
-    if (!selectedCustomer) return;
+  const confirmStatusToggle = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!selectedCustomer || isUpdatingStatus) return;
 
     try {
+      setIsUpdatingStatus(true);
       const newStatus = !selectedCustomer.currentStatus;
 
       await setCustomerStatus(selectedCustomer.id, newStatus);
@@ -262,6 +284,8 @@ export default function Customers() {
     } catch (error) {
       console.error("Error updating customer status:", error);
       toast.error("Failed to update customer status. Please try again.");
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
@@ -284,9 +308,9 @@ export default function Customers() {
           gender: data.gender,
           birthday: data.birthday.toISOString(),
           location: data.location,
-          roleId: data.roleId,
-          password: "defaultPassword123!",
-          confirmPassword: "defaultPassword123!",
+          // roleId: data.roleId,
+          // password: "defaultPassword123!",
+          // confirmPassword: "defaultPassword123!",
         };
 
         await createCustomer(customerData);
@@ -342,10 +366,10 @@ export default function Customers() {
               )}
             </div>
 
-            <Button onClick={() => setIsAddCustomerOpen(true)}>
+            {/* <Button onClick={() => setIsAddCustomerOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Add Customer
-            </Button>
+            </Button> */}
           </div>
         </CardHeader>
         <CardContent>
@@ -372,8 +396,8 @@ export default function Customers() {
                           <div>
                             <h3 className="text-lg font-medium">No customers found</h3>
                             <p className="text-sm text-muted-foreground">
-                              {searchTerm 
-                                ? "Try a different search term" 
+                              {searchTerm
+                                ? "Try a different search term"
                                 : "Get started by adding a new customer"}
                             </p>
                           </div>
@@ -411,10 +435,10 @@ export default function Customers() {
                             <TableCell>
                               {customer.birthday
                                 ? new Date(customer.birthday).toLocaleDateString("en-US", {
-                                    year: "numeric",
-                                    month: "short",
-                                    day: "numeric",
-                                  })
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                })
                                 : "N/A"}
                             </TableCell>
                             <TableCell>
@@ -450,7 +474,7 @@ export default function Customers() {
                                     {customer.isActive ? (
                                       <>
                                         <UserX className="mr-2 h-4 w-4" />
-                                        <span>Deactivate</span>
+                                        <span>Inactive</span>
                                       </>
                                     ) : (
                                       <>
@@ -526,9 +550,9 @@ export default function Customers() {
       <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{selectedCustomer?.currentStatus ? "Deactivate Customer" : "Activate Customer"}</DialogTitle>
+            <DialogTitle>{selectedCustomer?.currentStatus ? "Inactive Customer" : "Activate Customer"}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to {selectedCustomer?.currentStatus ? "deactivate" : "activate"}
+              Are you sure you want to {selectedCustomer?.currentStatus ? "inactive" : "activate"}
               <span className="font-semibold"> {selectedCustomer?.name}</span>?{selectedCustomer?.currentStatus ? " They will no longer be able to access their account." : " They will regain access to their account."}
             </DialogDescription>
           </DialogHeader>
@@ -536,8 +560,24 @@ export default function Customers() {
             <Button variant="outline" onClick={() => setStatusDialogOpen(false)}>
               Cancel
             </Button>
-            <Button variant={selectedCustomer?.currentStatus ? "destructive" : "default"} onClick={confirmStatusToggle}>
-              {selectedCustomer?.currentStatus ? "Deactivate" : "Activate"}
+            <Button
+              variant={selectedCustomer?.currentStatus ? "destructive" : "default"}
+              onClick={confirmStatusToggle}
+              disabled={isUpdatingStatus}
+            >
+              {isUpdatingStatus ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  {selectedCustomer?.currentStatus ? "Inactivating..." : "Activating..."}
+                </>
+              ) : selectedCustomer?.currentStatus ? (
+                "Inactive"
+              ) : (
+                "Activate"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -557,8 +597,22 @@ export default function Customers() {
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={confirmDelete}>
-              Delete Permanently
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Deleting...
+                </>
+              ) : (
+                "Delete Permanently"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -576,7 +630,7 @@ export default function Customers() {
               gender: "male",
               birthday: undefined,
               location: "",
-              roleId: "",
+              // roleId: "",
             });
             setEditingCustomer(null);
             setIsEditMode(false);
@@ -600,7 +654,11 @@ export default function Customers() {
                       <FormItem>
                         <FormLabel>Full Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="John Doe" {...field} />
+                          <Input placeholder="John Doe" {...field}
+                            onBlur={(e) => {
+                              const trimmedValue = e.target.value.trim();
+                              field.onChange(trimmedValue);
+                            }} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -613,7 +671,7 @@ export default function Customers() {
                       <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="john@example.com" {...field} />
+                          <Input type="email" disabled placeholder="john@example.com" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -660,25 +718,49 @@ export default function Customers() {
                   <FormField
                     control={form.control}
                     name="birthday"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Date of birth</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar captionLayout="dropdown" defaultMonth={field.value} mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} fromYear={1900} toYear={new Date().getFullYear()} classNames={classNames} />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      const safeDate = field.value ? new Date(field.value) : null;
+                      const isValidDate = safeDate && !isNaN(safeDate.getTime());
+
+                      return (
+                        <FormItem>
+                          <FormLabel>Date of birth</FormLabel>
+                          <Popover onOpenChange={(open) => !open && field.onBlur()}>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full h-10 px-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  <span>
+                                    {isValidDate ? format(safeDate, "PPP") : "Pick a date"}
+                                  </span>
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                captionLayout="dropdown"
+                                mode="single"
+                                selected={isValidDate ? safeDate : undefined}
+                                onSelect={(date) => date && field.onChange(date)}
+                                defaultMonth={isValidDate ? safeDate : new Date()}
+                                disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                                fromYear={1900}
+                                toYear={new Date().getFullYear()}
+                                classNames={classNames}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                   <FormField
                     control={form.control}
@@ -693,7 +775,7 @@ export default function Customers() {
                       </FormItem>
                     )}
                   />
-                  <FormField
+                  {/* <FormField
                     control={form.control}
                     name="roleId"
                     render={({ field }) => (
@@ -714,7 +796,7 @@ export default function Customers() {
                         <FormMessage />
                       </FormItem>
                     )}
-                  />
+                  /> */}
                 </div>
               </div>
               <DialogFooter className="mt-6">

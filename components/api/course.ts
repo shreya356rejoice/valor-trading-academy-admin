@@ -58,6 +58,7 @@ export interface Course {
     hours?: string;
     email?: string;
     phone?: string;
+    isDefineCourse?: string;
 }
 
 export const getCourses = async ({

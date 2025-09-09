@@ -21,6 +21,7 @@ import { Dialog as ConfirmDialog, DialogContent as ConfirmDialogContent, DialogH
 import Link from "next/link";
 import { DataTablePagination } from "@/components/ui/DataTablePagination";
 import { Course } from "@/components/api/course";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 export default function Courses() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -55,6 +56,23 @@ export default function Courses() {
 
   // Add loading state
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+
+  // Handle file selection from ImageUpload component
+  const handleImageChange = (file: File | null) => {
+    setImageFile(file);
+  };
+
+  // Function to trim input values on blur
+  const handleTrimInput = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const trimmedValue = e.target.value.trim();
+    if (trimmedValue !== e.target.value) {
+      e.target.value = trimmedValue;
+      // Trigger change event to update form state
+      const event = new Event('input', { bubbles: true });
+      e.target.dispatchEvent(event);
+    }
+  };
 
   // Add this validation function at the top level of the component
   const validateForm = (formData: FormData, courseType: string) => {
@@ -470,10 +488,8 @@ export default function Courses() {
         return;
       }
 
-      console.log(formData.get("image") as File, "---------------------------");
-
       // Get the thumbnail image file if it exists
-      const thumbnailImage = formData.get("image") as File | null;
+      // const thumbnailImage = formData.get("image") as File | null;
 
       // Create a new FormData for the API request
       const apiFormData = new FormData();
@@ -489,6 +505,12 @@ export default function Courses() {
       apiFormData.append("instructor", formData.get("instructor") || "");
       apiFormData.append("language", formData.get("language") || "english");
 
+      // Only add isDefineCourse if defineCourse has a value
+      const defineCourse = formData.get("defineCourse");
+      if (defineCourse) {
+        apiFormData.append("isDefineCourse", defineCourse.toString());
+      }
+
       // Add course type specific fields
       if (courseType === "live") {
         apiFormData.append("meetingLink", formData.get("zoomLink") || "");
@@ -499,18 +521,22 @@ export default function Courses() {
         // apiFormData.append('address', formData.get('address') || '');
       }
 
+      if (imageFile) {
+        apiFormData.append("image", imageFile);
+      }
+
       // Add the thumbnail image if it exists
-    //   if (thumbnailImage && thumbnailImage.size > 0) {
-    //     apiFormData.append("thumbnail", thumbnailImage);
-    //   }
+      //   if (thumbnailImage && thumbnailImage.size > 0) {
+      //     apiFormData.append("thumbnail", thumbnailImage);
+      //   }
 
       // Add course images if they exist (for recorded courses)
-      const courseImages = formData.getAll("image") as File[];
-      if (courseImages && courseImages.length > 0) {
-        courseImages.forEach((file, index) => {
-          apiFormData.append(`image`, file);
-        });
-      }
+      // const courseImages = formData.getAll("image") as File[];
+      // if (courseImages && courseImages.length > 0) {
+      //   courseImages.forEach((file, index) => {
+      //     apiFormData.append(`image`, file);
+      //   });
+      // }
 
       try {
         let data;
@@ -570,7 +596,16 @@ export default function Courses() {
     }, 500);
   };
 
+  const isTabDisabled = (tabType: string) => {
+    if (!editCourse) return false;
+    return editCourse.courseType !== tabType;
+  };
+
   const handleFormTabChange = (value: string) => {
+    if (editCourse && editCourse.courseType !== value) {
+      // Don't allow changing tabs when editing a course
+      return;
+    }
     setFormActiveTab(value);
   };
 
@@ -627,9 +662,12 @@ export default function Courses() {
           </DialogHeader>
           <Tabs value={formActiveTab} onValueChange={handleFormTabChange} className="w-full">
             <TabsList className="grid w-full grid-cols-3 mb-4">
-              <TabsTrigger value="recorded">Recorded</TabsTrigger>
-              <TabsTrigger value="live">Live</TabsTrigger>
-              <TabsTrigger value="physical">In-Person</TabsTrigger>
+              <TabsTrigger value="recorded" disabled={isTabDisabled('recorded')}
+                className={isTabDisabled('recorded') ? 'opacity-50 cursor-not-allowed' : ''}>Recorded</TabsTrigger>
+              <TabsTrigger value="live" disabled={isTabDisabled('live')}
+                className={isTabDisabled('live') ? 'opacity-50 cursor-not-allowed' : ''}>Live</TabsTrigger>
+              <TabsTrigger value="physical" disabled={isTabDisabled('physical')}
+                className={isTabDisabled('physical') ? 'opacity-50 cursor-not-allowed' : ''}>In-Person</TabsTrigger>
             </TabsList>
             {/* Recorded Course Form */}
             <TabsContent value="recorded">
@@ -637,23 +675,58 @@ export default function Courses() {
                 <input type="hidden" name="courseType" value="recorded" />
                 <div>
                   <label className="block font-medium mb-1">Course Thumbnail Image</label>
-                  <Input type="file" accept="image/*" name="image" />
-                  {formErrors.image && <div className="text-red-500">{formErrors.image}</div>}
+                  <ImageUpload
+                    name="image"
+                    id="course-thumbnail"
+                    error={formErrors.image}
+                    onChange={handleImageChange}
+                    initialImage={editCourse?.courseVideo || null}
+                  />
                 </div>
                 <div>
                   <label className="block font-medium mb-1">Course Name</label>
-                  <Input placeholder="Course Name" name="name" defaultValue={editCourse?.CourseName || ""} />
+                  <Input
+                    placeholder="Course Name"
+                    name="name"
+                    defaultValue={editCourse?.CourseName || ""}
+                    onBlur={handleTrimInput}
+                    onKeyDown={(e) => {
+                      if (e.key === ' ' && !(e.target as HTMLInputElement).value.trim()) {
+                        e.preventDefault();
+                      }
+                    }}
+                  />
                   {formErrors.name && <div className="text-red-500">{formErrors.name}</div>}
                 </div>
                 <div>
                   <label className="block font-medium mb-1">Course Description</label>
-                  <Input placeholder="Course Description" name="description" defaultValue={editCourse?.description || ""} />
+                  <Input
+                    placeholder="Course Description"
+                    name="description"
+                    defaultValue={editCourse?.description || ""}
+                    onBlur={handleTrimInput}
+                    onKeyDown={(e) => {
+                      if (e.key === ' ' && !(e.target as HTMLInputElement).value.trim()) {
+                        e.preventDefault();
+                      }
+                    }}
+                  />
                   {formErrors.description && <div className="text-red-500">{formErrors.description}</div>}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block font-medium mb-1">Instructor Name</label>
-                    <Input placeholder="Instructor Name" name="instructor" defaultValue={editCourse?.instructor || ""} />
+                    <Input
+                      placeholder="Instructor Name"
+                      name="instructor"
+                      defaultValue={editCourse?.instructor || ""}
+                      onBlur={handleTrimInput}
+                      onKeyDown={(e) => {
+                        if (e.key === ' ' && !(e.target as HTMLInputElement).value.trim()) {
+                          e.preventDefault();
+                        }
+                      }}
+                    />
                     {formErrors.instructor && <div className="text-red-500">{formErrors.instructor}</div>}
                   </div>
                   <div>
@@ -668,17 +741,17 @@ export default function Courses() {
                   </div>
                 </div>
                 {/* Start and End Date in one row */}
-                <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
                   <div className="flex-1">
                     <label className="block font-medium mb-1">Start Date</label>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <button type="button" className="w-full text-left border rounded-md px-3 py-2 flex items-center gap-2">
-                          <CalendarIcon className="h-4 w-4" />
-                          {recordedStartDate ? format(recordedStartDate, "yyyy-MM-dd") : <span>Pick a date</span>}
-                        </button>
+                        <Button variant="outline" className="w-full h-10 justify-start text-left font-normal px-4 group">
+                          <CalendarIcon className="mr-2 h-4 w-4 group-hover:text-gray-900" />
+                          {recordedStartDate ? <span className=" text-gray-900">{format(recordedStartDate, "PPP")}</span> : <><input placeholder="Pick a date" className="!outline-none !border-none !bg-transparent !caret-transparent cursor-pointer !text-base !font-semibold" />{/* <span className="text-base font-semibold">Pick a date</span> */}</>}
+                        </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
+                      <PopoverContent className="w-auto p-0 calendar-gray">
                         <Calendar
                           mode="single"
                           selected={recordedStartDate}
@@ -692,7 +765,6 @@ export default function Courses() {
                           disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                         />
                       </PopoverContent>
-                      {/* <input type="hidden" name="startDate" value={recordedStartDate ? format(recordedStartDate, "yyyy-MM-dd") : ""} /> */}
                     </Popover>
                     {formErrors.startDate && <div className="text-red-500">{formErrors.startDate}</div>}
                   </div>
@@ -700,12 +772,12 @@ export default function Courses() {
                     <label className="block font-medium mb-1">End Date</label>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-full justify-start text-left font-normal">
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {recordedEndDate ? format(recordedEndDate, "PPP") : <span>Pick a date</span>}
+                        <Button variant="outline" className="w-full h-10 justify-start text-left font-normal px-4 group">
+                          <CalendarIcon className="mr-2 h-4 w-4 group-hover:text-gray-900" />
+                          {recordedEndDate ? <span className="text-gray-900">{format(recordedEndDate, "PPP")}</span> : <><input placeholder="Pick a date" className="!outline-none !border-none !bg-transparent !caret-transparent cursor-pointer !text-base !font-semibold" />{/* <span className="text-base font-semibold">Pick a date</span> */}</>}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
+                      <PopoverContent className="w-auto p-0 calendar-gray">
                         <Calendar
                           mode="single"
                           selected={recordedEndDate}
@@ -719,7 +791,6 @@ export default function Courses() {
                           disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                         />
                       </PopoverContent>
-                      {/* <input type="hidden" name="endDate" value={recordedEndDate ? format(recordedEndDate, "yyyy-MM-dd") : ""} /> */}
                     </Popover>
                     {formErrors.endDate && <div className="text-red-500">{formErrors.endDate}</div>}
                   </div>
@@ -733,14 +804,29 @@ export default function Courses() {
                   </div>
                   <div>
                     <label className="block font-medium mb-1">Hours</label>
-                    <Input placeholder="Course Hours" type="number" name="hours" defaultValue={editCourse?.price || ""} />
-                    {formErrors.price && <div className="text-red-500">{formErrors.price}</div>}
+                    <Input
+                      placeholder="Hours"
+                      type="text"
+                      name="hours"
+                      defaultValue={editCourse?.hours || ""}
+                      onBlur={handleTrimInput}
+                      onKeyDown={(e) => {
+                        if (e.key === ' ' && !(e.target as HTMLInputElement).value.trim()) {
+                          e.preventDefault();
+                        }
+                      }}
+                    />
+                    {formErrors.hours && <div className="text-red-500">{formErrors.hours}</div>}
                   </div>
                 </div>
-                {/* <div>
-                                    <label className="block font-medium mb-1">Upload Videos (per module/chapter)</label>
-                                    <Input type="file" accept="video/*" multiple name="videos" />
-                                </div> */}
+                <div>
+                  <label className="block font-medium mb-1">Define Course</label>
+                  <select name="defineCourse" className="flex h-10 w-full rounded-md border border-input bg-background px-4 ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" defaultValue={editCourse?.isDefineCourse || ""}>
+                    <option value="">Choose Option</option>
+                    <option value="popular">Popular</option>
+                    <option value="trending">Trending</option>
+                  </select>
+                </div>
                 <DialogFooter>
                   <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting ? "Saving..." : editCourse ? "Update Course" : "Create Recorded Course"}
@@ -754,23 +840,58 @@ export default function Courses() {
                 <input type="hidden" name="courseType" value="live" />
                 <div>
                   <label className="block font-medium mb-1">Course Thumbnail Image</label>
-                  <Input type="file" accept="image/*" name="image" />
-                  {formErrors.image && <div className="text-red-500">{formErrors.image}</div>}
+                  <ImageUpload
+                    name="image"
+                    id="course-thumbnail"
+                    error={formErrors.image}
+                    onChange={handleImageChange}
+                    initialImage={editCourse?.courseVideo || null}
+                  />
                 </div>
                 <div>
                   <label className="block font-medium mb-1">Course Name</label>
-                  <Input placeholder="Course Name" name="name" defaultValue={editCourse?.CourseName || ""} />
+                  <Input
+                    placeholder="Course Name"
+                    name="name"
+                    defaultValue={editCourse?.CourseName || ""}
+                    onBlur={handleTrimInput}
+                    onKeyDown={(e) => {
+                      if (e.key === ' ' && !(e.target as HTMLInputElement).value.trim()) {
+                        e.preventDefault();
+                      }
+                    }}
+                  />
                   {formErrors.name && <div className="text-red-500">{formErrors.name}</div>}
                 </div>
                 <div>
                   <label className="block font-medium mb-1">Course Description</label>
-                  <Input placeholder="Course Description" name="description" defaultValue={editCourse?.description || ""} />
+                  <Input
+                    placeholder="Course Description"
+                    name="description"
+                    defaultValue={editCourse?.description || ""}
+                    onBlur={handleTrimInput}
+                    onKeyDown={(e) => {
+                      if (e.key === ' ' && !(e.target as HTMLInputElement).value.trim()) {
+                        e.preventDefault();
+                      }
+                    }}
+                  />
                   {formErrors.description && <div className="text-red-500">{formErrors.description}</div>}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block font-medium mb-1">Instructor Name</label>
-                    <Input placeholder="Instructor Name" name="instructor" defaultValue={editCourse?.instructor || ""} />
+                    <Input
+                      placeholder="Instructor Name"
+                      name="instructor"
+                      defaultValue={editCourse?.instructor || ""}
+                      onBlur={handleTrimInput}
+                      onKeyDown={(e) => {
+                        if (e.key === ' ' && !(e.target as HTMLInputElement).value.trim()) {
+                          e.preventDefault();
+                        }
+                      }}
+                    />
                     {formErrors.instructor && <div className="text-red-500">{formErrors.instructor}</div>}
                   </div>
                   <div>
@@ -793,19 +914,30 @@ export default function Courses() {
                   </div>
                   <div>
                     <label className="block font-medium mb-1">Hours</label>
-                    <Input placeholder="Hours" type="number" name="hours" defaultValue={editCourse?.hours || ""} />
+                    <Input
+                      placeholder="Hours"
+                      type="number"
+                      name="hours"
+                      defaultValue={editCourse?.hours || ""}
+                      onBlur={handleTrimInput}
+                      onKeyDown={(e) => {
+                        if (e.key === ' ' && !(e.target as HTMLInputElement).value.trim()) {
+                          e.preventDefault();
+                        }
+                      }}
+                    />
                     {formErrors.hours && <div className="text-red-500">{formErrors.hours}</div>}
                   </div>
                 </div>
                 {/* Start and End Date in one row */}
-                <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
                   <div className="flex-1">
                     <label className="block font-medium mb-1">Start Date</label>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-full justify-start text-left font-normal">
+                        <Button variant="outline" className="w-full h-10 justify-start text-left font-normal px-4">
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {liveStartDate ? format(liveStartDate, "PPP") : <span>Pick a date</span>}
+                          {liveStartDate ? format(liveStartDate, "PPP") : <><input placeholder="Pick a date" className="!outline-none !border-none !bg-transparent !caret-transparent cursor-pointer !text-base !font-semibold" />{/* <span className="text-base font-semibold">Pick a date</span> */}</>}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
@@ -818,9 +950,9 @@ export default function Courses() {
                     <label className="block font-medium mb-1">End Date</label>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-full justify-start text-left font-normal">
+                        <Button variant="outline" className="w-full h-10 justify-start text-left font-normal px-4">
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {liveEndDate ? format(liveEndDate, "PPP") : <span>Pick a date</span>}
+                          {liveEndDate ? format(liveEndDate, "PPP") : <><input placeholder="Pick a date" className="!outline-none !border-none !bg-transparent !caret-transparent cursor-pointer !text-base !font-semibold" />{/* <span className="text-base font-semibold">Pick a date</span> */}</>}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
@@ -831,19 +963,29 @@ export default function Courses() {
                   </div>
                 </div>
                 {formErrors.dateRange && <div className="text-red-500">{formErrors.dateRange}</div>}
-                {/* <div>
-                  <label className="block font-medium mb-1">Date and Time</label>
-                  <Input placeholder="e.g. 2024-01-20 10:00 AM" name="dateTime" />
-                </div> */}
                 <div>
                   <label className="block font-medium mb-1">Zoom Meeting Link</label>
-                  <Input placeholder="Zoom Meeting Link" name="zoomLink" defaultValue={editCourse?.meetingLink || ""} />
+                  <Input
+                    placeholder="Zoom Meeting Link"
+                    name="zoomLink"
+                    defaultValue={editCourse?.meetingLink || ""}
+                    onBlur={handleTrimInput}
+                    onKeyDown={(e) => {
+                      if (e.key === ' ' && !(e.target as HTMLInputElement).value.trim()) {
+                        e.preventDefault();
+                      }
+                    }}
+                  />
                   {formErrors.zoomLink && <div className="text-red-500">{formErrors.zoomLink}</div>}
                 </div>
-                {/* <div>
-                  <label className="block font-medium mb-1">Upload Meeting Recording (post-session)</label>
-                  <Input type="file" accept="video/*" name="meetingRecording" />
-                </div> */}
+                <div>
+                  <label className="block font-medium mb-1">Define Course</label>
+                  <select name="defineCourse" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" defaultValue={editCourse?.language || "english"}>
+                    <option value="">Choose Option</option>
+                    <option value="popular">Popular</option>
+                    <option value="trending">Trending</option>
+                  </select>
+                </div>
                 <DialogFooter>
                   <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting ? "Saving..." : editCourse ? "Update Course" : "Create Live Online"}
@@ -857,23 +999,58 @@ export default function Courses() {
                 <input type="hidden" name="courseType" value="physical" />
                 <div>
                   <label className="block font-medium mb-1">Course Thumbnail Image</label>
-                  <Input type="file" accept="image/*" name="image" />
-                  {formErrors.image && <div className="text-red-500">{formErrors.image}</div>}
+                  <ImageUpload
+                    name="image"
+                    id="course-thumbnail"
+                    error={formErrors.image}
+                    onChange={handleImageChange}
+                    initialImage={editCourse?.courseVideo || null}
+                  />
                 </div>
                 <div>
                   <label className="block font-medium mb-1">Course Name</label>
-                  <Input placeholder="Course Name" name="name" defaultValue={editCourse?.CourseName || ""} />
+                  <Input
+                    placeholder="Course Name"
+                    name="name"
+                    defaultValue={editCourse?.CourseName || ""}
+                    onBlur={handleTrimInput}
+                    onKeyDown={(e) => {
+                      if (e.key === ' ' && !(e.target as HTMLInputElement).value.trim()) {
+                        e.preventDefault();
+                      }
+                    }}
+                  />
                   {formErrors.name && <div className="text-red-500">{formErrors.name}</div>}
                 </div>
                 <div>
                   <label className="block font-medium mb-1">Course Description</label>
-                  <Input placeholder="Course Description" name="description" defaultValue={editCourse?.description || ""} />
+                  <Input
+                    placeholder="Course Description"
+                    name="description"
+                    defaultValue={editCourse?.description || ""}
+                    onBlur={handleTrimInput}
+                    onKeyDown={(e) => {
+                      if (e.key === ' ' && !(e.target as HTMLInputElement).value.trim()) {
+                        e.preventDefault();
+                      }
+                    }}
+                  />
                   {formErrors.description && <div className="text-red-500">{formErrors.description}</div>}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block font-medium mb-1">Instructor Name</label>
-                    <Input placeholder="Instructor Name" name="instructor" defaultValue={editCourse?.instructor || ""} />
+                    <Input
+                      placeholder="Instructor Name"
+                      name="instructor"
+                      defaultValue={editCourse?.instructor || ""}
+                      onBlur={handleTrimInput}
+                      onKeyDown={(e) => {
+                        if (e.key === ' ' && !(e.target as HTMLInputElement).value.trim()) {
+                          e.preventDefault();
+                        }
+                      }}
+                    />
                     {formErrors.instructor && <div className="text-red-500">{formErrors.instructor}</div>}
                   </div>
                   <div>
@@ -895,19 +1072,30 @@ export default function Courses() {
                   </div>
                   <div>
                     <label className="block font-medium mb-1">Hours</label>
-                    <Input placeholder="Hours" type="text" name="hours" defaultValue={editCourse?.hours || ""} />
+                    <Input
+                      placeholder="Hours"
+                      type="text"
+                      name="hours"
+                      defaultValue={editCourse?.hours || ""}
+                      onBlur={handleTrimInput}
+                      onKeyDown={(e) => {
+                        if (e.key === ' ' && !(e.target as HTMLInputElement).value.trim()) {
+                          e.preventDefault();
+                        }
+                      }}
+                    />
                     {formErrors.hours && <div className="text-red-500">{formErrors.hours}</div>}
                   </div>
                 </div>
                 {/* Start and End Date in one row */}
-                <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
                   <div className="flex-1">
                     <label className="block font-medium mb-1">Start Date</label>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-full justify-start text-left font-normal">
+                        <Button variant="outline" className="w-full h-10 justify-start text-left font-normal px-4">
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {physicalStartDate ? format(physicalStartDate, "PPP") : <span>Pick a date</span>}
+                          {physicalStartDate ? format(physicalStartDate, "PPP") : <><input placeholder="Pick a date" className="!outline-none !border-none !bg-transparent !caret-transparent cursor-pointer !text-base !font-semibold" />{/* <span className="text-base font-semibold">Pick a date</span> */}</>}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
@@ -920,9 +1108,9 @@ export default function Courses() {
                     <label className="block font-medium mb-1">End Date</label>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-full justify-start text-left font-normal">
+                        <Button variant="outline" className="w-full h-10 justify-start text-left font-normal px-4">
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {physicalEndDate ? format(physicalEndDate, "PPP") : <span>Pick a date</span>}
+                          {physicalEndDate ? format(physicalEndDate, "PPP") : <><input placeholder="Pick a date" className="!outline-none !border-none !bg-transparent !caret-transparent cursor-pointer !text-base !font-semibold" />{/* <span className="text-base font-semibold">Pick a date</span> */}</>}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
@@ -940,12 +1128,36 @@ export default function Courses() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="block font-medium">Email</label>
-                    <Input type="email" placeholder="Email" name="email" defaultValue={editCourse?.email || ""} className="w-full" />
+                    <Input
+                      type="email"
+                      placeholder="Email"
+                      name="email"
+                      defaultValue={editCourse?.email || ""}
+                      className="w-full"
+                      onBlur={handleTrimInput}
+                      onKeyDown={(e) => {
+                        if (e.key === ' ' && !(e.target as HTMLInputElement).value.trim()) {
+                          e.preventDefault();
+                        }
+                      }}
+                    />
                     {formErrors.email && <p className="text-red-500">{formErrors.email}</p>}
                   </div>
                   <div className="space-y-1">
                     <label className="block font-medium">Phone No.</label>
-                    <Input type="tel" placeholder="Phone Number" name="phone" defaultValue={editCourse?.phone || ""} className="w-full" />
+                    <Input
+                      type="tel"
+                      placeholder="Phone Number"
+                      name="phone"
+                      defaultValue={editCourse?.phone || ""}
+                      className="w-full"
+                      onBlur={handleTrimInput}
+                      onKeyDown={(e) => {
+                        if (e.key === ' ' && !(e.target as HTMLInputElement).value.trim()) {
+                          e.preventDefault();
+                        }
+                      }}
+                    />
                     {formErrors.phone && <p className="text-red-500">{formErrors.phone}</p>}
                   </div>
                   {/* <div className="space-y-1">
@@ -961,16 +1173,30 @@ export default function Courses() {
                                         )}
                                     </div> */}
                 </div>
-                <div>
-                  <label className="block font-medium mb-1">Location</label>
-                  <Input placeholder="Location" name="location" defaultValue={editCourse?.location || ""} />
-                  {formErrors.location && <div className="text-red-500">{formErrors.location}</div>}
+                <div className="space-y-1">
+                  <label className="block font-medium">Location</label>
+                  <Input
+                    placeholder="Location"
+                    name="location"
+                    defaultValue={editCourse?.location || ""}
+                    className="w-full"
+                    onBlur={handleTrimInput}
+                    onKeyDown={(e) => {
+                      if (e.key === ' ' && !(e.target as HTMLInputElement).value.trim()) {
+                        e.preventDefault();
+                      }
+                    }}
+                  />
+                  {formErrors.location && <p className="text-red-500">{formErrors.location}</p>}
                 </div>
-                {/* <div>
-                  <label className="block font-medium mb-1">Address</label>
-                  <Input placeholder="Address" name="address" defaultValue={editCourse?.address || ""} />
-                  {formErrors.address && <div className="text-red-500">{formErrors.address}</div>}
-                </div> */}
+                <div>
+                  <label className="block font-medium mb-1">Define Course</label>
+                  <select name="defineCourse" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" defaultValue={editCourse?.language || "english"}>
+                    <option value="">Choose Option</option>
+                    <option value="popular">Popular</option>
+                    <option value="trending">Trending</option>
+                  </select>
+                </div>
                 <DialogFooter>
                   <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting ? "Saving..." : editCourse ? "Update Course" : "Create In-Person Course"}

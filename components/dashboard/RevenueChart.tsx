@@ -13,7 +13,15 @@ export default function RevenueChart({data}: {data: any}) {
         <XAxis dataKey="month" />
         <YAxis />
         <Tooltip />
-        <Legend />
+        <Legend
+          formatter={(value: string) => {
+            const labelMap: Record<string, string> = {
+              courseRevenue: 'Course Revenue',
+              botRevenue: 'Bot Revenue',
+            };
+            return labelMap[value] || value;
+          }}
+        />
         <Line type="monotone" dataKey="courseRevenue" stroke="#8884d8" strokeWidth={2} />
         <Line type="monotone" dataKey="botRevenue" stroke="#82ca9d" strokeWidth={2} />
         {/* <Line type="monotone" dataKey="telegram" stroke="#ffc658" strokeWidth={2} /> */}

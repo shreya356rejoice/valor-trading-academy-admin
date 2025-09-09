@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { marked } from "marked";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,7 +61,7 @@ const formSchema = z.object({
           .string()
           .min(1, "Video link URL is required")
           .refine((val) => /^https?:\/\/.+\..+/.test(val), { message: "Please enter a valid HTTP/HTTPS URL" }),
-        language: z.string().min(1, "Language is required"),
+        language: z.string().optional(),
       })
     )
     .min(1, "At least one video link is required"),
@@ -383,18 +383,28 @@ export default function AlgoBots() {
   const onSubmitStep1 = async (data: FormValues) => {
     try {
       setIsLoading(true);
+
+      // If we already have a botPlanId and we're not in edit mode, just move to step 2
+      if (botPlanId && !isEditMode) {
+        setStep(2);
+        return;
+      }
+
+      // Ensure each link has a default language of 'English' if none is selected
+      const processedLinks = (data.links || [])
+        .filter((link) => link.url && link.url.trim() !== "")
+        .map((link) => ({
+          language: link.language || "English",
+          url: link.url,
+        }));
+
       const step1Data = {
         title: data.title,
         categoryId: data.categoryId,
         shortDescription: data.shortDescription,
         description: data.description,
-        imageUrl: imageFile,
-        link: (data.links || [])
-          .filter((link) => link.url && link.url.trim() !== "")
-          .map((link) => ({
-            language: link.language,
-            url: link.url,
-          })),
+        ...(isEditMode && !imageFile ? {} : { imageUrl: imageFile }),
+        link: processedLinks,
       };
 
       if (isEditMode && currentBotId) {
@@ -404,24 +414,32 @@ export default function AlgoBots() {
           toast.success("AlgoBot updated successfully");
         }
       } else {
-        const response = await createAlgoBot(step1Data);
-        if (response?.payload?._id) {
-          setBotPlanId(response.payload._id);
-          toast.success("AlgoBot created successfully");
+        // Only create a new bot if we don't have a botPlanId yet
+        if (!botPlanId) {
+          const response = await createAlgoBot(step1Data);
+          if (response?.payload?._id) {
+            setBotPlanId(response.payload._id);
+            toast.success("AlgoBot created successfully");
+          }
         }
       }
 
       setCurrentPage(1);
       setStep(2);
-      // await fetchBots();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error in step 1:", error);
-      toast.error("Failed to proceed to next step");
-      return false;
+      if (error.response?.data?.message?.includes("already exists")) {
+        // If bot already exists, just move to step 2
+        setStep(2);
+      } else {
+        toast.error(error.response?.data?.message || "Failed to proceed to next step");
+        return false;
+      }
     } finally {
       setIsLoading(false);
     }
   };
+
 
   const onSubmitSecond = async (data: FormValues) => {
     try {
@@ -498,10 +516,10 @@ export default function AlgoBots() {
     const botLinks =
       Array.isArray(rawLinks) && rawLinks.length > 0
         ? rawLinks.map((l: any) => ({
-            url: l.url || "",
-            language: l.language || "",
-            _id: l._id,
-          }))
+          url: l.url || "",
+          language: l.language || "",
+          _id: l._id,
+        }))
         : [{ url: "", language: "" }];
 
     setStep1({ links: botLinks });
@@ -679,6 +697,10 @@ export default function AlgoBots() {
       setPriceError("Price must be less than 1,000,000");
       setError("price" as any, { type: "manual", message: "Price must be less than 1,000,000" } as any);
       hasError = true;
+    } else if ((price as string).includes(".") && (price as string).split(".")[1].length > 2) {
+      setPriceError("Price can have maximum 2 decimal places");
+      setError("price" as any, { type: "manual", message: "Price can have maximum 2 decimal places" } as any);
+      hasError = true;
     }
 
     if (!botProviderId || String(botProviderId).trim() === "") {
@@ -691,28 +713,70 @@ export default function AlgoBots() {
       hasError = true;
     }
 
+    // Validate discount
+    if (discount && String(discount).trim() !== "") {
+      const discountValue = parseFloat(discount as any);
+
+      if (isNaN(discountValue) || discountValue < 0) {
+        setError(
+          "discount" as any,
+          {
+            type: "manual",
+            message: "Discount must be a valid non-negative number",
+          } as any
+        );
+        hasError = true;
+      } else if (discountValue >= 100) {
+        setError(
+          "discount" as any,
+          {
+            type: "manual",
+            message: "Discount must be less than 100",
+          } as any
+        );
+        hasError = true;
+      } else if (price && parseFloat(price as any) > 0 && discountValue > parseFloat(price as any)) {
+        setError(
+          "discount" as any,
+          {
+            type: "manual",
+            message: "Discount cannot be greater than price",
+          } as any
+        );
+        hasError = true;
+      }
+    }
+
     if (hasError) return;
 
-    const newPlan = {
+    const newPlan: any = {
       _id: planEdit && editingPlanId ? editingPlanId : `temp_${Date.now()}_${Math.random()}`, // Generate temp ID for new plans
       planType: plan || "",
       price: String(price),
-      discount: String(discount),
       botProviderId: botProviderId || "",
       botId: botId || "",
       initialPrice: parseFloat(price as any),
     };
 
+    // Only include discount if it has a value
+    if (discount && String(discount).trim() !== "") {
+      newPlan.discount = String(discount);
+    }
+
     try {
       setIsLoading(true);
 
       if (botPlanId) {
-        const step2Data = {
+        const step2Data: any = {
           planType: newPlan.planType,
           price: newPlan.price,
           botId: newPlan.botId,
-          discount: newPlan.discount,
         };
+
+        // Only include discount in API data if it exists
+        if (newPlan.discount) {
+          step2Data.discount = newPlan.discount;
+        }
 
         if (planEdit && editingPlanId) {
           if (editingPlanId.startsWith("temp_")) {
@@ -720,17 +784,18 @@ export default function AlgoBots() {
               prev.map((p) =>
                 p._id === editingPlanId
                   ? {
-                      ...p,
-                      ...newPlan,
-                      botId: {
-                        _id: newPlan.botId,
-                        botProviderId: {
-                          _id: newPlan.botProviderId,
-                          companyName: "",
-                        },
-                        name: "",
-                      },
-                    }
+                    ...p,
+                    ...newPlan,
+                    // botId: {
+                    //   _id: newPlan.botId,
+                    //   botProviderId: {
+                    //     _id: newPlan.botProviderId,
+                    //     companyName: "",
+                    //   },
+                    //   name: "",
+                    // },
+                    botId: newPlan.botId
+                  }
                   : p
               )
             );
@@ -742,17 +807,17 @@ export default function AlgoBots() {
               prev.map((p) =>
                 p._id === editingPlanId
                   ? {
-                      ...p,
-                      ...newPlan,
-                      botId: {
-                        _id: newPlan.botId,
-                        botProviderId: {
-                          _id: newPlan.botProviderId,
-                          companyName: "",
-                        },
-                        name: "",
+                    ...p,
+                    ...newPlan,
+                    botId: {
+                      _id: newPlan.botId,
+                      botProviderId: {
+                        _id: newPlan.botProviderId,
+                        companyName: "",
                       },
-                    }
+                      name: "",
+                    },
+                  }
                   : p
               )
             );
@@ -835,6 +900,23 @@ export default function AlgoBots() {
           setFilteredBots(fb);
         }, 0);
       }
+    } else {
+      const botId = plan?.botId;
+      const providerId = plan?.botProviderId;
+
+      if (providerId) {
+        // First set the provider and wait for state update
+        setValue("botProviderId", providerId);
+
+        // Then set the botId in the next tick
+        setTimeout(() => {
+          setValue("botId", botId);
+
+          // Filter bots for the selected provider
+          const fb = bots.filter((b) => b.botProviderId === providerId || !b.botProviderId);
+          setFilteredBots(fb);
+        }, 0);
+      }
     }
 
     // Scroll to the form
@@ -877,9 +959,25 @@ export default function AlgoBots() {
     setValue("links", updatedLinks);
   };
 
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOpenDropdownIndex(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   const handleLanguageChange = (index: number, language: string) => {
     const updatedLinks = [...step1.links];
-    updatedLinks[index].language = language;
+    updatedLinks[index].language = language || "English";
     setStep1({ ...step1, links: updatedLinks });
     setValue("links", updatedLinks);
     setOpenDropdownIndex(null);
@@ -938,7 +1036,15 @@ export default function AlgoBots() {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="title">Strategy Name</Label>
-                      <Input id="title" placeholder="Enter strategy name" {...register("title")} className={errors.title ? "border-red-500" : ""} />
+                      <Input id="title" placeholder="Enter strategy name" {...register("title")} onBlur={(e) => {
+                        const value = e.target.value.trim();
+                        setValue("title", value, { shouldValidate: true });
+                      }}
+                        onKeyDown={(e) => {
+                          if (e.key === " " && !e.currentTarget.value.trim()) {
+                            e.preventDefault();
+                          }
+                        }} className={errors.title ? "border-red-500" : ""} />
                       {errors.title && <p className="text-sm text-red-500">{errors.title.message}</p>}
                     </div>
                     <div className="space-y-4">
@@ -948,14 +1054,31 @@ export default function AlgoBots() {
                           <>
                             <div key={link._id || index} className="flex gap-2 items-start">
                               <div className="flex-1 flex gap-2 items-start">
-                                <Input value={link?.url || ""} onChange={(e) => handleLinkChange(index, e.target.value)} placeholder="Enter Tutorial Video Links... " className="w-full h-10" />
-                                <div className="relative h-[40px]">
-                                  <div className="py-1 px-3 border shadow-sm h-[40px] rounded-lg w-36 flex justify-between items-center cursor-pointer" onClick={() => setOpenDropdownIndex(openDropdownIndex === index ? null : index)}>
+                                <Input value={link?.url || ""} onChange={(e) => handleLinkChange(index, e.target.value)} onBlur={(e) => {
+                                  const value = e.target.value.trim();
+                                  handleLinkChange(index, value);
+                                }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === " " && !e.currentTarget.value.trim()) {
+                                      e.preventDefault();
+                                    }
+                                  }} placeholder="Enter Tutorial Video Links... " className="w-full h-10" />
+                                <div className="relative h-[40px]" ref={dropdownRef}>
+                                  <div
+                                    className="py-1 px-3 border shadow-sm h-[40px] rounded-lg w-36 flex justify-between items-center cursor-pointer"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenDropdownIndex(openDropdownIndex === index ? null : index);
+                                    }}
+                                  >
                                     <span className="text-sm font-medium text-muted-foreground">{languages.find((opt) => opt.languageName === link?.language)?.languageName || "English"}</span>
                                     <ChevronDown className={`h-4 w-4 transition-all duration-500 ease-in-out ${openDropdownIndex === index ? "rotate-180" : ""}`} />
                                   </div>
                                   {openDropdownIndex === index && (
-                                    <div className="max-h-[300px] absolute top-full border-input rounded-lg border-[1px] shadow-sm left-0 z-10 w-full transition-all duration-500 ease-in-out overflow-hidden">
+                                    <div
+                                      className="max-h-[300px] absolute top-full border-input rounded-lg border-[1px] shadow-sm left-0 z-10 w-full transition-all duration-500 ease-in-out overflow-hidden"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
                                       <div className="px-2 py-1 bg-background rounded-lg">
                                         {languages.map((option) => (
                                           <div key={option?._id} className="bg-background group hover:bg-gray-100 px-3 py-2 transition-all duration-500 ease-in-out flex flex-col" onClick={() => handleLanguageChange(index, option.languageName)}>
@@ -1026,7 +1149,15 @@ export default function AlgoBots() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="shortDescription">Short Description</Label>
-                      <Textarea id="shortDescription" placeholder="Enter a brief description (10-50 characters)" {...register("shortDescription")} className={errors.shortDescription ? "border-red-500" : ""} rows={2} />
+                      <Textarea id="shortDescription" placeholder="Enter a brief description (10-50 characters)" {...register("shortDescription")} onBlur={(e) => {
+                        const value = e.target.value.trim();
+                        setValue("shortDescription", value, { shouldValidate: true });
+                      }}
+                        onKeyDown={(e) => {
+                          if (e.key === " " && !e.currentTarget.value.trim()) {
+                            e.preventDefault();
+                          }
+                        }} className={errors.shortDescription ? "border-red-500" : ""} rows={2} />
                       {errors.shortDescription && <p className="text-sm text-red-500">{errors.shortDescription.message}</p>}
                     </div>
                     <div className="space-y-2">
@@ -1123,6 +1254,7 @@ export default function AlgoBots() {
                     <div className="space-y-2">
                       <Label htmlFor="discount">Discount</Label>
                       <Input id="discount" type="number" placeholder="0" {...register("discount")} />
+                      {errors.discount && <p className="text-sm font-semibold text-red-500">{String(errors.discount.message || "")}</p>}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="botProviderId">Bot Provider Company</Label>

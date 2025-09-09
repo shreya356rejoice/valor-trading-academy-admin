@@ -79,7 +79,7 @@ const stats = [
             <CardTitle>Revenue Overview</CardTitle>
           </CardHeader>
           <CardContent>
-            <RevenueChart data={totalRevenueData.monthlyRevenue}/>
+            <RevenueChart data={totalRevenueData?.monthlyRevenue}/>
           </CardContent>
         </Card>
 

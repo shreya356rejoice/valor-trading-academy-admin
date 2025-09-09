@@ -342,22 +342,38 @@ export default function TelegramManagement() {
       hasError = true;
     }
 
-    const priceValue = String(price || "").trim();
+    const priceValue = String(price || '').trim();
+    // Price validation
+    const priceNum = parseFloat(priceValue);
+    const priceParts = priceValue.split('.');
+
     if (!priceValue) {
       setPriceError("Price is required");
       setError("price" as any, { type: "manual", message: "Price is required" } as any);
       hasError = true;
-    } else if (isNaN(parseFloat(priceValue)) || parseFloat(priceValue) <= 0) {
+    } else if (isNaN(priceNum) || priceNum <= 0) {
       setPriceError("Price must be a valid positive number");
       setError("price" as any, { type: "manual", message: "Price must be a valid positive number" } as any);
       hasError = true;
-    } else if (isNaN(parseFloat(price as any)) || parseFloat(price as any) <= 0) {
-      setPriceError("Price must be a valid positive number");
-      setError("price" as any, { type: "manual", message: "Price must be a valid positive number" } as any);
-      hasError = true;
-    } else if (parseFloat(price as any) > 1000000) {
+    } else if (priceNum > 1000000) {
       setPriceError("Price must be less than 1,000,000");
       setError("price" as any, { type: "manual", message: "Price must be less than 1,000,000" } as any);
+      hasError = true;
+    } else if (priceParts[1] && priceParts[1].length !== 2) {
+      setPriceError("Price must have exactly 2 decimal places");
+      setError("price" as any, { type: "manual", message: "Price must have exactly 2 decimal places" } as any);
+      hasError = true;
+    }
+    
+    // Discount validation
+    const discountValue = String(discount || '0').trim();
+    const discountNum = parseInt(discountValue, 10);
+    
+    if (discountValue && !/^\d+$/.test(discountValue)) {
+      setError("discount" as any, { type: "manual", message: "Discount must be a whole number" } as any);
+      hasError = true;
+    } else if (discountValue && (discountNum < 0 || discountNum > 99)) {
+      setError("discount" as any, { type: "manual", message: "Discount must be between 0 and 99" } as any);
       hasError = true;
     }
 
@@ -582,6 +598,7 @@ export default function TelegramManagement() {
                     <div className="space-y-2">
                       <Label htmlFor="discount">Discount</Label>
                       <Input id="discount" type="number" placeholder="0" {...register("discount")} />
+                      {errors.discount && <p className="text-sm text-red-500">{String((errors as any).discount?.message || "")}</p>}
                     </div>
 
                     <div className="pt-2">
