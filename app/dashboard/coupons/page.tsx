@@ -160,8 +160,6 @@ export default function CouponPage() {
     try {
       setIsLoading(true);
 
-      console.log("data", data);
-
       // Ensure expiryDate is sent as YYYY-MM-DD
       const payload = {
         couponCode: data.couponCode,
