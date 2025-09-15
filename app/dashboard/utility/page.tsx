@@ -49,7 +49,6 @@ export default function Utility() {
     try {
       // Replace with actual API call
       const res = await getUtility();
-      console.log(res, "res");
       setUtilitySettings(res?.payload || {});
     } catch (err) {
       console.error("Failed to fetch utility settings:", err);
@@ -61,8 +60,6 @@ export default function Utility() {
       setIsLoading(true);
       const updateData = { [field]: value };
       const utilityId = utilitySettings?._id || "";
-
-      console.log(utilityId, "id");
 
       const response = await updateUtility(utilityId, updateData);
 

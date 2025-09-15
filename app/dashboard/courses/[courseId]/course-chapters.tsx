@@ -94,8 +94,6 @@ export function CourseChapters({ initialChapters, courseId, courseName, loading,
   //     return () => clearTimeout(timer);
   // }, [initialChapters]);
 
-  // console.log(chapters)
-
   const validateForm = (): boolean => {
     const newErrors: typeof errors = {};
     let isValid = true;
@@ -282,7 +280,6 @@ export function CourseChapters({ initialChapters, courseId, courseName, loading,
 
   const openEditDialog = (chapter: Chapter) => {
     setSelectedChapter(chapter);
-    console.log(chapter," chapter.courseId");
     
     setFormData({
       chapterName: chapter.chapterName || chapter.title || "",

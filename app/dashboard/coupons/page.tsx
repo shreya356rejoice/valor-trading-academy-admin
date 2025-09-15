@@ -106,8 +106,6 @@ export default function CouponPage() {
         search: searchTerm,
       });
 
-      console.log("response", response);
-
       setCoupons(response.payload.data);
       setTotalItems(response.payload.data.length);
       setTotalPages(Math.ceil(response.payload.totalPages / itemsPerPage));
@@ -145,7 +143,6 @@ export default function CouponPage() {
 
     try {
       await deleteCoupon(couponToDelete._id);
-      console.log("Deleting coupon:", couponToDelete._id);
       setCoupons(coupons.filter((c) => c._id !== couponToDelete._id));
       toast.success("Coupon deleted successfully");
       setIsDeleteDialogOpen(false);

@@ -187,7 +187,6 @@ export default function Payments() {
 
         const link = document.createElement("a");
         link.href = url;
-        console.log(link.href);
         link.download = `invoice-${payment.orderId || Date.now()}.pdf`;
 
         document.body.appendChild(link);
