@@ -61,7 +61,7 @@ export default function AlgoBotsLayout({ children }: { children: React.ReactNode
       </div>
 
       {/* Main content */}
-      <div className="flex-1 overflow-hidden p-6">{children}</div>
+      <div className="p-6">{children}</div>
     </div>
   );
 }
