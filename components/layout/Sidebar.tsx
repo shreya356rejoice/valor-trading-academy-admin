@@ -26,7 +26,10 @@ import {
   ChevronDown,
   Settings as SettingsIcon,
   Gift,
-  Waves
+  Waves,
+  Video,
+  Group,
+  UserCheck
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -48,6 +51,16 @@ const sidebarItems = [
     icon: BookOpen
   },
   {
+    title: 'Live Webinars',
+    href: '/dashboard/live-webinars',
+    icon: Video
+  },
+  {
+    title: 'Traders Meet',
+    href: '/dashboard/traders-meet',
+    icon: Group
+  },
+  {
     title: 'AlgoBots',
     href: '/dashboard/algobots',
     icon: Bot
@@ -66,6 +79,11 @@ const sidebarItems = [
     title: 'Payments',
     href: '/dashboard/payments',
     icon: CreditCard
+  },
+  {
+    title: 'Registered Users',
+    href: '/dashboard/registered-users',
+    icon: UserCheck
   },
   // {
   //   title: 'Notifications',

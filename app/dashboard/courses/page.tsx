@@ -642,24 +642,24 @@ export default function Courses() {
           }
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl gap-0">
           <DialogHeader>
             <DialogTitleUI>{editCourse ? `Edit ${editCourse.courseType?.charAt(0).toUpperCase() + editCourse.courseType?.slice(1)} Course` : "Create Course"}</DialogTitleUI>
           </DialogHeader>
           <Tabs value={formActiveTab} onValueChange={handleFormTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-4">
+            {/* <TabsList className="grid w-full grid-cols-3 mb-4">
               <TabsTrigger value="recorded" disabled={isTabDisabled('recorded')}
                 className={isTabDisabled('recorded') ? 'opacity-50 cursor-not-allowed' : ''}>Recorded</TabsTrigger>
               <TabsTrigger value="live" disabled={isTabDisabled('live')}
                 className={isTabDisabled('live') ? 'opacity-50 cursor-not-allowed' : ''}>Live</TabsTrigger>
               <TabsTrigger value="physical" disabled={isTabDisabled('physical')}
                 className={isTabDisabled('physical') ? 'opacity-50 cursor-not-allowed' : ''}>In-Person</TabsTrigger>
-            </TabsList>
+            </TabsList> */}
             {/* Recorded Course Form */}
             <TabsContent value="recorded">
               <form className="space-y-4 h-[54vh] overflow-y-auto px-1 scroll-thin" onSubmit={handleCourseSubmit}>
                 <input type="hidden" name="courseType" value="recorded" />
-                <div>
+                <div className="mt-0">
                   <label className="block font-medium mb-1">Course Thumbnail Image</label>
                   <ImageUpload
                     name="image"
@@ -743,7 +743,6 @@ export default function Courses() {
                           selected={recordedStartDate}
                           onSelect={(date) => {
                             setRecordedStartDate(date);
-                            // Close the popover after selection
                             const popoverTrigger = document.querySelector('[aria-haspopup="dialog"][data-state="open"]') as HTMLElement;
                             if (popoverTrigger) popoverTrigger.click();
                           }}
@@ -769,7 +768,6 @@ export default function Courses() {
                           selected={recordedEndDate}
                           onSelect={(date) => {
                             setRecordedEndDate(date);
-                            // Close the popover after selection
                             const popoverTrigger = document.querySelector('[aria-haspopup="dialog"][data-state="open"]:not([data-radix-popper-content-wrapper])') as HTMLElement;
                             if (popoverTrigger) popoverTrigger.click();
                           }}
@@ -821,7 +819,7 @@ export default function Courses() {
               </form>
             </TabsContent>
             {/* Live Course Form */}
-            <TabsContent value="live">
+            {/* <TabsContent value="live">
               <form className="space-y-4 h-[54vh] overflow-y-auto px-1 scroll-thin" onSubmit={handleCourseSubmit}>
                 <input type="hidden" name="courseType" value="live" />
                 <div>
@@ -891,7 +889,6 @@ export default function Courses() {
                     </select>
                   </div>
                 </div>
-                {/* Add Price Field */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block font-medium mb-1">Course Price</label>
@@ -915,7 +912,6 @@ export default function Courses() {
                     {formErrors.hours && <div className="text-red-500">{formErrors.hours}</div>}
                   </div>
                 </div>
-                {/* Start and End Date in one row */}
                 <div className="flex flex-col md:flex-row gap-4 mb-6">
                   <div className="flex-1">
                     <label className="block font-medium mb-1">Start Date</label>
@@ -923,7 +919,7 @@ export default function Courses() {
                       <PopoverTrigger asChild>
                         <Button variant="outline" className="w-full h-10 justify-start text-left font-normal px-4">
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {liveStartDate ? format(liveStartDate, "PPP") : <><input placeholder="Pick a date" className="!outline-none !border-none !bg-transparent !caret-transparent cursor-pointer !text-base !font-semibold" />{/* <span className="text-base font-semibold">Pick a date</span> */}</>}
+                          {liveStartDate ? format(liveStartDate, "PPP") : <><input placeholder="Pick a date" className="!outline-none !border-none !bg-transparent !caret-transparent cursor-pointer !text-base !font-semibold" /></>}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
@@ -938,7 +934,7 @@ export default function Courses() {
                       <PopoverTrigger asChild>
                         <Button variant="outline" className="w-full h-10 justify-start text-left font-normal px-4">
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {liveEndDate ? format(liveEndDate, "PPP") : <><input placeholder="Pick a date" className="!outline-none !border-none !bg-transparent !caret-transparent cursor-pointer !text-base !font-semibold" />{/* <span className="text-base font-semibold">Pick a date</span> */}</>}
+                          {liveEndDate ? format(liveEndDate, "PPP") : <><input placeholder="Pick a date" className="!outline-none !border-none !bg-transparent !caret-transparent cursor-pointer !text-base !font-semibold" /></>}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
@@ -978,9 +974,9 @@ export default function Courses() {
                   </Button>
                 </DialogFooter>
               </form>
-            </TabsContent>
+            </TabsContent> */}
             {/* Physical Course Form */}
-            <TabsContent value="physical">
+            {/* <TabsContent value="physical">
               <form className="space-y-4 h-[54vh] overflow-y-auto px-1 scroll-thin" onSubmit={handleCourseSubmit}>
                 <input type="hidden" name="courseType" value="physical" />
                 <div>
@@ -1073,7 +1069,6 @@ export default function Courses() {
                     {formErrors.hours && <div className="text-red-500">{formErrors.hours}</div>}
                   </div>
                 </div>
-                {/* Start and End Date in one row */}
                 <div className="flex flex-col md:flex-row gap-4 mb-6">
                   <div className="flex-1">
                     <label className="block font-medium mb-1">Start Date</label>
@@ -1081,7 +1076,7 @@ export default function Courses() {
                       <PopoverTrigger asChild>
                         <Button variant="outline" className="w-full h-10 justify-start text-left font-normal px-4">
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {physicalStartDate ? format(physicalStartDate, "PPP") : <><input placeholder="Pick a date" className="!outline-none !border-none !bg-transparent !caret-transparent cursor-pointer !text-base !font-semibold" />{/* <span className="text-base font-semibold">Pick a date</span> */}</>}
+                          {physicalStartDate ? format(physicalStartDate, "PPP") : <><input placeholder="Pick a date" className="!outline-none !border-none !bg-transparent !caret-transparent cursor-pointer !text-base !font-semibold" /></>}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
@@ -1096,7 +1091,7 @@ export default function Courses() {
                       <PopoverTrigger asChild>
                         <Button variant="outline" className="w-full h-10 justify-start text-left font-normal px-4">
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {physicalEndDate ? format(physicalEndDate, "PPP") : <><input placeholder="Pick a date" className="!outline-none !border-none !bg-transparent !caret-transparent cursor-pointer !text-base !font-semibold" />{/* <span className="text-base font-semibold">Pick a date</span> */}</>}
+                          {physicalEndDate ? format(physicalEndDate, "PPP") : <><input placeholder="Pick a date" className="!outline-none !border-none !bg-transparent !caret-transparent cursor-pointer !text-base !font-semibold" /></>}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
@@ -1107,10 +1102,6 @@ export default function Courses() {
                   </div>
                 </div>
                 {formErrors.dateRange && <div className="text-red-500">{formErrors.dateRange}</div>}
-                {/* <div>
-                  <label className="block font-medium mb-1">Date and Time</label>
-                  <Input placeholder="e.g. 2024-02-15 9:00 AM" name="dateTime" />
-                </div> */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="block font-medium">Email</label>
@@ -1146,18 +1137,6 @@ export default function Courses() {
                     />
                     {formErrors.phone && <p className="text-red-500">{formErrors.phone}</p>}
                   </div>
-                  {/* <div className="space-y-1">
-                                        <label className="block font-medium text-sm">Address</label>
-                                        <Input 
-                                            placeholder="Full address" 
-                                            name="address" 
-                                            defaultValue={editCourse?.address || ''} 
-                                            className="w-full"
-                                        />
-                                        {formErrors.address && (
-                                            <p className="text-xs text-red-500">{formErrors.address}</p>
-                                        )}
-                                    </div> */}
                 </div>
                 <div className="space-y-1">
                   <label className="block font-medium">Location</label>
@@ -1189,7 +1168,7 @@ export default function Courses() {
                   </Button>
                 </DialogFooter>
               </form>
-            </TabsContent>
+            </TabsContent> */}
           </Tabs>
         </DialogContent>
       </Dialog>
@@ -1232,7 +1211,7 @@ export default function Courses() {
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full space-y-4 px-6">
-        <TabsList className="grid w-full grid-cols-3">
+        {/* <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="recorded" className="w-full">
             Recorded
           </TabsTrigger>
@@ -1242,7 +1221,7 @@ export default function Courses() {
           <TabsTrigger value="physical" className="w-full">
             Physical
           </TabsTrigger>
-        </TabsList>
+        </TabsList> */}
 
         {isTabSwitching ? (
           <div className="flex justify-center items-center min-h-[70vh]">
