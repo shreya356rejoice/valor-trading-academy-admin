@@ -22,6 +22,7 @@ type UtilitySettings = {
   twitter: string;
   chatNumber: string;
   days: string;
+  telegramLink?: string;
 };
 
 export default function Utility() {
@@ -35,6 +36,7 @@ export default function Utility() {
     twitter: "",
     chatNumber: "",
     days: "",
+    telegramLink: "",
   });
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [currentField, setCurrentField] = useState<keyof UtilitySettings | null>(null);
@@ -61,7 +63,7 @@ export default function Utility() {
       const updateData = { [field]: value };
       const utilityId = utilitySettings?._id || "";
 
-      const response = await updateUtility(utilityId, updateData);
+      const response = await updateUtility(utilityId, updateData);      
 
       setUtilitySettings(prev => ({
         ...prev,
@@ -98,6 +100,7 @@ export default function Utility() {
   const fieldLabels: Record<keyof Omit<UtilitySettings, '_id'>, string> = {
     email: "Email",
     phoneNo: "Phone Number",
+    telegramLink: "Telegram Link",
     facebookLink: "Facebook Link",
     instagramLink: "Instagram Link",
     linkedin: "Linkedin Link",
@@ -106,6 +109,9 @@ export default function Utility() {
     chatNumber: "Chat Number",
     days: "Newsletter Email Sent Days",
   };
+
+  console.log(utilitySettings,"utilitySettings");
+  
 
   // Filter and prepare table data
   const tableData = Object.entries(utilitySettings)

@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Search, Plus, Play, MapPin, Edit, Trash2, MoreVertical, Video, Link as LinkIcon, UploadCloud, Image, CalendarPlus, BookPlus } from "lucide-react";
+import { Search, Plus, Play, MapPin, Edit, Trash2, MoreVertical, Video, Link as LinkIcon, UploadCloud, Image, CalendarPlus, BookPlus, UserPlus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle as DialogTitleUI, DialogFooter } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -23,8 +23,10 @@ import { DataTablePagination } from "@/components/ui/DataTablePagination";
 import { Course } from "@/components/api/course";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Label } from "@/components/ui/label";
+import { useRouter } from "next/navigation";
 
 export default function LiveWebinars() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("recorded");
@@ -346,6 +348,16 @@ console.log("hello----",formData.get("courseStart")?.toString());
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/dashboard/registered-users?courseType=live&courseId=${course._id}`);
+                    setPopoverOpen(false);
+                  }}
+                >
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  <span>Register User</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={(e) => {
                     e.stopPropagation();
@@ -391,7 +403,7 @@ console.log("hello----",formData.get("courseStart")?.toString());
 
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center text-muted-foreground">
-              <span className="ml-1 capitalize">{course.language || "English"} | Registered Users : 2</span>
+              <span className="ml-1 capitalize">{course.language || "English"} | Registered Users : {course?.registration?.length || 0}</span>
             </div>
           </div>
 
