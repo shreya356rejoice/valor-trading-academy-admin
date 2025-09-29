@@ -59,6 +59,7 @@ export interface Course {
     email?: string;
     phone?: string;
     isDefineCourse?: string;
+    isFree?: boolean;
     startTime?: string;
     endTime?: string;
 }

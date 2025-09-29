@@ -57,6 +57,8 @@ export default function Courses() {
   // Add loading state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [isFreeCourse, setIsFreeCourse] = useState(false);
+  const [priceInput, setPriceInput] = useState('');
 
   // Handle file selection from ImageUpload component
   const handleImageChange = (file: File | null) => {
@@ -100,11 +102,15 @@ export default function Courses() {
     }
 
     // Validate price (required and > 0)
-    const priceValue = formData.get("price")?.toString();
-    const price = parseFloat(priceValue || "");
-    if (!priceValue || isNaN(price) || price <= 0) {
-      errors.price = "Please enter a valid price greater than 0";
-    }
+    // const priceValue = formData.get("price")?.toString();
+    // const price = parseFloat(priceValue || "");
+    // if (!priceValue || isNaN(price) || price <= 0) {
+    //   errors.price = "Please enter a valid price greater than 0";
+    // }
+
+    const priceValue = formData.get("price")?.toString().trim() || '';
+    
+    // setPriceInput(priceValue);
 
     // Validate hours (required and > 0)
     const hoursValue = formData.get("hours")?.toString();
@@ -231,6 +237,7 @@ export default function Courses() {
     setPhysicalStartDate(undefined);
     setPhysicalEndDate(undefined);
     setFormErrors({});
+    setIsFreeCourse(false); // Reset free course checkbox to unchecked
     // setActiveTab('recorded');
     // Reset form fields if using a form ref
     const form = document.querySelector("form");
@@ -256,6 +263,13 @@ export default function Courses() {
         setRecordedEndDate(new Date(editCourse.courseEnd));
         setLiveEndDate(new Date(editCourse.courseEnd));
         setPhysicalEndDate(new Date(editCourse.courseEnd));
+      }
+
+      // Set free course state based on price and isFree flag
+      if (editCourse.isFree !== undefined) {
+        setIsFreeCourse(editCourse.isFree);
+      } else if (editCourse.price !== undefined) {
+        setIsFreeCourse(Number(editCourse.price) === 0);
       }
     } else {
       resetForm();
@@ -484,7 +498,12 @@ export default function Courses() {
       apiFormData.append("courseType", formData.get("courseType") || "");
       apiFormData.append("CourseName", formData.get("name") || "");
       apiFormData.append("description", formData.get("description") || "");
-      apiFormData.append("price", formData.get("price") || "0");
+      // apiFormData.append("price", formData.get("price") || "0");
+      
+      // Add price and isFree based on checkbox state
+      const isFree = isFreeCourse || !formData.get("price")?.toString().trim();
+      apiFormData.append("price", isFree ? "0" : (formData.get("price")?.toString().trim() || "0"));
+      apiFormData.append("isFree", isFree ? "true" : "false");
       apiFormData.append("hours", formData.get("hours") || "0");
       apiFormData.append("courseStart", startDate);
       apiFormData.append("courseEnd", endDate);
@@ -626,6 +645,7 @@ export default function Courses() {
             setFormErrors({});
             setIsSubmitting(false);
             setEditCourse(null);
+            setIsFreeCourse(false);
             setRecordedStartDate(undefined);
             setRecordedEndDate(undefined);
             setLiveStartDate(undefined);
@@ -639,6 +659,9 @@ export default function Courses() {
           } else {
             setFormActiveTab(editCourse?.courseType || "recorded");
             setFormErrors({});
+            if (editCourse) {
+              setIsFreeCourse(!editCourse.price || Number(editCourse.price) === 0);
+            }
           }
         }}
       >
@@ -782,12 +805,35 @@ export default function Courses() {
                 {formErrors.dateRange && <div className="text-red-500">{formErrors.dateRange}</div>}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
+                    <div className="flex items-center space-x-2 mb-1">
+                      <input
+                        type="checkbox"
+                        id="freeCourse"
+                        checked={isFreeCourse}
+                        onChange={(e) => {
+                          setIsFreeCourse(e.target.checked);
+                          // Clear price when marking as free
+                          if (e.target.checked) {
+                            setPriceInput('');
+                          }
+                        }}
+                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <label htmlFor="freeCourse" className="text-sm font-medium text-gray-700">Free course</label>
+                    </div>
                     <label className="block font-medium mb-1">Course Price</label>
-                    <Input placeholder="Course Price" type="number" name="price" defaultValue={editCourse?.price || ""} />
+                    <Input
+                      placeholder={isFreeCourse ? "Free" : "Course Price"}
+                      type="number"
+                      name="price"
+                      defaultValue={editCourse?.price || ""}
+                      disabled={isFreeCourse}
+                      className={isFreeCourse ? "bg-gray-100" : ""}
+                    />
                     {formErrors.price && <div className="text-red-500">{formErrors.price}</div>}
                   </div>
                   <div>
-                    <label className="block font-medium mb-1">Hours</label>
+                    <label className="block font-medium mb-1 mt-6">Hours</label>
                     <Input
                       placeholder="Hours"
                       type="text"
