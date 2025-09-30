@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Plus, Edit, Trash2, ArrowLeft, Video, VideoIcon, Loader2 } from "lucide-react";
+import RichTextEditor from "@/components/dashboard/RichTextEditor";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { createChapter, updateChapter, deleteChapter, getChapters } from "@/components/api/course";
@@ -468,7 +469,12 @@ export function CourseChapters({ initialChapters, courseId, courseName, loading,
                                 })}
                               </span>
                             </div>
-                            <p className="text-sm text-gray-700 mb-2 line-clamp-2 overflow-hidden text-ellipsis">{chapter.description}</p>
+                            <p className="text-sm text-gray-700 mb-2 line-clamp-2 overflow-hidden text-ellipsis"
+                        dangerouslySetInnerHTML={{
+                          __html: chapter.description,
+                        }}
+                      />
+                            {/* <p className="text-sm text-gray-700 mb-2 line-clamp-2 overflow-hidden text-ellipsis">{chapter.description}</p> */}
                             {url && (
                               <a href={url} target="_blank" rel="noopener noreferrer" className="inline-block mt-1 px-3 py-1 text-background bg-foreground rounded-sm text-xs font-medium transition">
                                 ▶ Watch Video
@@ -499,7 +505,12 @@ export function CourseChapters({ initialChapters, courseId, courseName, loading,
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Description</label>
-              <textarea name="description" value={formData.description} onChange={handleInputChange} placeholder="Chapter description" className="w-full border rounded-md p-2 text-sm min-h-[80px]" required />
+              <RichTextEditor
+                value={formData.description}
+                onChange={(value) => setFormData({ ...formData, description: value })}
+                placeholder="Enter chapter description"
+                className={errors.description ? "border-red-500" : ""}
+              />
               {errors.description && <p className="text-sm text-red-500 mt-1">{errors.description}</p>}
             </div>
             {/* <div className="grid grid-cols-2 gap-4"> */}
