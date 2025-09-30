@@ -3,7 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 61, 52, 139; /* #3D348B */
+  --foreground-rgb: 61, 52, 139;
+  /* #3D348B */
   --background-start-rgb: 246, 246, 247;
   --background-end-rgb: 255, 255, 255;
 }
@@ -19,7 +20,8 @@
 @layer base {
   :root {
     --background: 255 100% 99%;
-    --foreground: 245 40% 29%; /* #3D348B */
+    --foreground: 245 40% 29%;
+    /* #3D348B */
 
     --card: 255 100% 100%;
     --card-foreground: 245 40% 29%;
@@ -27,16 +29,19 @@
     --popover: 255 100% 100%;
     --popover-foreground: 245 40% 29%;
 
-    --primary: 237 77% 60%; /* #7678ED */
+    --primary: 237 77% 60%;
+    /* #7678ED */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 245 40% 97%; /* light tint of #3D348B */
+    --secondary: 245 40% 97%;
+    /* light tint of #3D348B */
     --secondary-foreground: 245 40% 29%;
 
-    --muted: 240 10% 70%; 
+    --muted: 240 10% 70%;
     --muted-foreground: 240 10% 50%;
 
-    --accent: 237 77% 96%; /* soft blue tint */
+    --accent: 237 77% 96%;
+    /* soft blue tint */
     --accent-foreground: 245 40% 29%;
 
     --destructive: 0 84% 60%;
@@ -46,9 +51,12 @@
     --input: 240 20% 90%;
     --ring: 237 77% 60%;
 
-    --chart-1: 245 40% 29%; /* #3D348B */
-    --chart-2: 237 77% 60%; /* #7678ED */
-    --chart-3: 237 77% 92%; /* lighter blue */
+    --chart-1: 245 40% 29%;
+    /* #3D348B */
+    --chart-2: 237 77% 60%;
+    /* #7678ED */
+    --chart-3: 237 77% 92%;
+    /* lighter blue */
     --chart-4: 240 20% 98%;
     --chart-5: 0 0% 98%;
 
@@ -56,16 +64,19 @@
   }
 
   .dark {
-    --background: 240 5% 12%; /* Dark background */
+    --background: 240 5% 12%;
+    /* Dark background */
     --foreground: 0 0% 100%;
 
-    --card: 245 40% 20%; /* dark purple */
+    --card: 245 40% 20%;
+    /* dark purple */
     --card-foreground: 0 0% 100%;
 
     --popover: 245 40% 20%;
     --popover-foreground: 0 0% 100%;
 
-    --primary: 237 77% 60%; /* #7678ED */
+    --primary: 237 77% 60%;
+    /* #7678ED */
     --primary-foreground: 0 0% 100%;
 
     --secondary: 245 40% 30%;
@@ -84,8 +95,10 @@
     --input: 240 5% 20%;
     --ring: 237 77% 60%;
 
-    --chart-1: 245 40% 29%; /* #3D348B */
-    --chart-2: 237 77% 60%; /* #7678ED */
+    --chart-1: 245 40% 29%;
+    /* #3D348B */
+    --chart-2: 237 77% 60%;
+    /* #7678ED */
     --chart-3: 237 77% 92%;
     --chart-4: 240 20% 98%;
     --chart-5: 0 0% 98%;
@@ -96,6 +109,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -117,6 +131,7 @@
   cursor: pointer;
   transition: all 0.3s ease;
 }
+
 .gradient-button:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(61, 52, 139, 0.2);
@@ -143,6 +158,7 @@
   border-radius: 1rem;
   padding: 1.5rem;
 }
+
 .dark .glass-card {
   background: rgba(31, 31, 32, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.1);

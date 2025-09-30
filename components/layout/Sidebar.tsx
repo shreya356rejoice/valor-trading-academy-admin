@@ -6,16 +6,17 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import eduFinslogo from "../../public/images/eduFins-logo.png"
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  LayoutDashboard, 
-  Users, 
-  BookOpen, 
-  Bot, 
-  MessageCircle, 
-  CreditCard, 
-  Bell, 
-  UserPlus, 
+import {
+  LayoutDashboard,
+  Users,
+  BookOpen,
+  Bot,
+  MessageCircle,
+  CreditCard,
+  Bell,
+  UserPlus,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -33,6 +34,7 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+const SidebarLogo = "/assets/logo/eduFins-logo.png";
 
 const sidebarItems = [
   {
@@ -172,19 +174,32 @@ export default function Sidebar() {
       {/* Header with Logo */}
       <div className="flex items-center justify-between p-4 border-b relative">
         <div className={cn("flex items-center space-x-2", isCollapsed ? "w-full justify-center" : "")}>
-          <div className={cn("relative", isCollapsed ? "h-10 w-10" : "h-10 w-10")}>
-            <Image 
-              src="/images/logo.png" 
-              alt="Valor Trading Academy Logo"
-              fill
-              className="object-contain"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              priority
-            />
+          {/* <div className={cn("relative", isCollapsed ? "h-10 w-10" : "h-10 w-10")}> */}
+          <div className="w-full relative">
+            {!isCollapsed && (
+              <Image
+                src={eduFinslogo}
+                alt="Valor Trading Academy Logo"
+                fill
+                className="!relative max-w-[172px] h-auto"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                priority
+              />
+            )}
+            {isCollapsed && (
+              <Image
+                src="/images/logo.png"
+                alt="Valor Trading Academy Logo"
+                fill
+                className="!relative w-full h-auto"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                priority
+              />
+            )}
           </div>
-          {!isCollapsed && (
+          {/* {!isCollapsed && (
             <h2 className="text-xl font-bold text-foreground">Valor Trading</h2>
-          )}
+          )} */}
         </div>
       </div>
 
@@ -192,16 +207,16 @@ export default function Sidebar() {
         <nav className="space-y-2">
           {sidebarItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href || 
-                         (item.href !== '/dashboard' && pathname.startsWith(item.href));
-            
+            const isActive = pathname === item.href ||
+              (item.href !== '/dashboard' && pathname.startsWith(item.href));
+
             return (
               <Link key={item.href} href={item.href}>
                 <Button
                   variant={isActive ? "default" : "ghost"}
                   className={cn(
                     "w-full justify-start group",
-                    isCollapsed ? "px-2" : "px-4"
+                    isCollapsed ? "!px-2" : "px-4"
                   )}
                 >
                   <Icon className={cn("h-4 w-4", !isCollapsed && "mr-3")} />
@@ -220,8 +235,8 @@ export default function Sidebar() {
       )}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className={cn(
                 "w-full justify-between h-auto p-2",
                 isCollapsed ? "flex-col items-center justify-center space-y-1" : "flex items-center"

@@ -39,6 +39,7 @@ const formSchema = z.object({
   discount: z.string().optional(),
   botProviderId: z.string().optional(),
   botId: z.string().optional(),
+  isFree: z.boolean().default(false),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -52,6 +53,7 @@ type Plan = {
   botProviderId: string;
   discount: string;
   initialPrice: number;
+  isFree?: boolean;
 };
 
 interface TelegramChannel {
@@ -75,13 +77,14 @@ export default function TelegramManagement() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [step, setStep] = useState(1);
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [channelToDelete, setChannelToDelete] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [planEdit, setPlanEdit] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
+  const [planEdit, setPlanEdit] = useState<boolean>(false);
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
   const [priceError, setPriceError] = useState<string | null>(null);
+  const [isFreePlan, setIsFreePlan] = useState<boolean>(false);
+  const [plans, setPlans] = useState<Plan[]>([]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -184,6 +187,7 @@ export default function TelegramManagement() {
             planType: plan.planType,
             price: parseFloat(plan.price),
             discount: parseFloat(plan.discount) || 0,
+            isFree: plan.isFree || false,
           };
 
           // If plan has an _id, it's an existing plan that needs updating
@@ -212,6 +216,7 @@ export default function TelegramManagement() {
             planType: plan.planType,
             price: parseFloat(plan.price),
             discount: parseFloat(plan.discount) || 0,
+            isFree: plan.isFree || false,
           };
           return createChannelPlan(planData);
         });
@@ -263,6 +268,11 @@ export default function TelegramManagement() {
       // Fetch existing plans for this channel
       const response = await getAllTelegramPlan(channel._id);
 
+      console.log(
+        response.payload?.data,"response.payload?.data"
+      )
+      
+
       if (response.success && response.payload?.data) {
         // Map the response to match our Plan type
         const existingPlans = response.payload.data.map((plan: any) => ({
@@ -271,6 +281,7 @@ export default function TelegramManagement() {
           price: plan.price.toString(),
           discount: plan.discount ? plan.discount.toString() : "0",
           initialPrice: plan.initialPrice,
+          isFree: plan.isFree || false,
         }));
         setPlans(existingPlans);
       }
@@ -321,7 +332,9 @@ export default function TelegramManagement() {
       discount: "",
       botProviderId: "",
       botId: "",
+      isFree: false,
     });
+    setIsFreePlan(false);
     setPlans([]);
     setCurrentChannelId(null);
     setIsEditMode(false);
@@ -332,37 +345,45 @@ export default function TelegramManagement() {
   };
 
   const handleAddPlan = async () => {
-    const { plan, price, discount } = getValues();
+    const { plan, price, discount, isFree } = getValues();
 
     // Validate required fields for adding a plan
     let hasError = false;
 
-    if (!plan || String(plan).trim() === "") {
-      setError("plan" as any, { type: "manual", message: "Plan duration is required" } as any);
-      hasError = true;
+    if (isFree && plans.some(p => p.isFree)) {
+      toast.error("A free plan already exists. Please remove it before adding another one.");
+      return;
     }
 
-    const priceValue = String(price || '').trim();
-    // Price validation
-    const priceNum = parseFloat(priceValue);
-    const priceParts = priceValue.split('.');
+    // Skip price validation for free plans
+    if (!isFree) {
+      if (!plan || String(plan).trim() === "") {
+        setError("plan" as any, { type: "manual", message: "Plan duration is required" } as any);
+        hasError = true;
+      }
 
-    if (!priceValue) {
-      setPriceError("Price is required");
-      setError("price" as any, { type: "manual", message: "Price is required" } as any);
-      hasError = true;
-    } else if (isNaN(priceNum) || priceNum <= 0) {
-      setPriceError("Price must be a valid positive number");
-      setError("price" as any, { type: "manual", message: "Price must be a valid positive number" } as any);
-      hasError = true;
-    } else if (priceNum > 1000000) {
-      setPriceError("Price must be less than 1,000,000");
-      setError("price" as any, { type: "manual", message: "Price must be less than 1,000,000" } as any);
-      hasError = true;
-    } else if (priceParts[1] && priceParts[1].length !== 2) {
-      setPriceError("Price must have exactly 2 decimal places");
-      setError("price" as any, { type: "manual", message: "Price must have exactly 2 decimal places" } as any);
-      hasError = true;
+      const priceValue = String(price || '').trim();
+      // Price validation
+      const priceNum = parseFloat(priceValue);
+      const priceParts = priceValue.split('.');
+
+      if (!priceValue) {
+        setPriceError("Price is required");
+        setError("price" as any, { type: "manual", message: "Price is required" } as any);
+        hasError = true;
+      } else if (isNaN(priceNum) || priceNum <= 0) {
+        setPriceError("Price must be a valid positive number");
+        setError("price" as any, { type: "manual", message: "Price must be a valid positive number" } as any);
+        hasError = true;
+      } else if (priceNum > 1000000) {
+        setPriceError("Price must be less than 1,000,000");
+        setError("price" as any, { type: "manual", message: "Price must be less than 1,000,000" } as any);
+        hasError = true;
+      } else if (priceParts[1] && priceParts[1].length !== 2) {
+        setPriceError("Price must have exactly 2 decimal places");
+        setError("price" as any, { type: "manual", message: "Price must have exactly 2 decimal places" } as any);
+        hasError = true;
+      }
     }
     
     // Discount validation
@@ -381,13 +402,14 @@ export default function TelegramManagement() {
 
     const newPlan: Plan = {
       _id: planEdit && editingPlanId ? editingPlanId : `temp_${Date.now()}_${Math.random()}`,
-      planType: plan || "",
-      price: String(price || ""),
-      discount: String(discount || "0"),
-      value: parseFloat(price as string) || 0,
+      planType: isFree ? "Free" : (plan || ""),
+      price: isFree ? "0" : String(price || ""),
+      discount: isFree ? "0" : String(discount || "0"),
+      value: isFree ? 0 : (parseFloat(price as string) || 0),
       botId: "",
       botProviderId: "",
-      initialPrice: parseFloat(price as string) || 0,
+      initialPrice: isFree ? 0 : (parseFloat(price as string) || 0),
+      isFree: isFree || false,
     };
 
     try {
@@ -550,10 +572,37 @@ export default function TelegramManagement() {
               {step === 2 && (
                 <>
                   <form onSubmit={handleSubmit(onSubmitSecond)} className="space-y-4">
+                    <div className="flex items-center space-x-2 pb-2">
+                      <input
+                        type="checkbox"
+                        id="isFree"
+                        {...register("isFree")}
+                        checked={isFreePlan}
+                        onChange={(e) => {
+                          const isChecked = e.target.checked;
+                          setIsFreePlan(isChecked);
+                          setValue("isFree", isChecked);
+                          
+                          // Reset plan fields when toggling free/paid
+                          if (isChecked) {
+                            setValue("plan", "");
+                            setValue("price", "0");
+                            setValue("discount", "0");
+                            clearErrors(["plan", "price", "discount"]);
+                          }
+                        }}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <Label htmlFor="isFree" className="text-sm font-medium text-gray-700">
+                        Free plan
+                      </Label>
+                    </div>
+                    
                     <div className="space-y-2">
                       <Label htmlFor="plan">Plan Duration</Label>
                       <select
                         id="plan"
+                        disabled={isFreePlan}
                         {...register("plan")}
                         onChange={(e) => {
                           setValue("plan", e.target.value);
@@ -591,20 +640,43 @@ export default function TelegramManagement() {
 
                     <div className="space-y-2">
                       <Label htmlFor="price">Price</Label>
-                      <Input id="price" type="number" placeholder="0.00" {...register("price")} className={errors.price ? "border-red-500" : ""} />
+                      <Input 
+                        id="price" 
+                        type="number" 
+                        placeholder="0.00" 
+                        {...register("price")} 
+                        disabled={isFreePlan}
+                        className={`${errors.price ? "border-red-500" : ""} ${isFreePlan ? "bg-gray-100 cursor-not-allowed" : ""}`} 
+                      />
                       {errors.price && <p className="text-sm text-red-500">{String((errors as any).price?.message || "")}</p>}
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="discount">Discount</Label>
-                      <Input id="discount" type="number" placeholder="0" {...register("discount")} />
+                      <Input 
+                        id="discount" 
+                        type="number" 
+                        placeholder="0" 
+                        {...register("discount")} 
+                        disabled={isFreePlan}
+                        className={isFreePlan ? "bg-gray-100 cursor-not-allowed" : ""}
+                      />
                       {errors.discount && <p className="text-sm text-red-500">{String((errors as any).discount?.message || "")}</p>}
                     </div>
 
                     <div className="pt-2">
-                      <Button type="button" onClick={handleAddPlan} id="plan-form" disabled={isLoading}>
+                      <Button 
+                        type="button" 
+                        onClick={handleAddPlan} 
+                        id="plan-form" 
+                        disabled={isLoading || (isFreePlan && plans.some(p => p.isFree))}
+                        className={isFreePlan && plans.some(p => p.isFree) ? "opacity-50 cursor-not-allowed" : ""}
+                      >
                         {planEdit ? "Update Plan" : "Add Plan"}
                       </Button>
+                      {/* {isFreePlan && plans.some(p => p.isFree) && (
+                        <p className="mt-2 text-sm text-yellow-600">A free plan already exists. Please remove it before adding another one.</p>
+                      )} */}
                     </div>
 
                     {/* Added Plans List */}
