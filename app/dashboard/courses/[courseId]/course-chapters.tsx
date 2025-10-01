@@ -124,11 +124,8 @@ export function CourseChapters({ initialChapters, courseId, courseName, loading,
     //   isValid = false;
     // }
 
-    // Video file validation
-    if (!selectedChapter && !formData.videoFile) {
-      newErrors.videoFile = "Video file is required";
-      isValid = false;
-    } else if (formData.videoFile) {
+    // Video file validation (optional)
+    if (formData.videoFile) {
       const validTypes = ["video/mp4", "video/webm", "video/quicktime"];
       if (!validTypes.includes(formData.videoFile.type)) {
         newErrors.videoFile = "Please upload a valid video file (MP4, WebM, or QuickTime)";
@@ -222,7 +219,7 @@ export function CourseChapters({ initialChapters, courseId, courseName, loading,
         data.append("image", formData.videoFile);
       } else if (formData.videoUrl) {
         data.append("image", formData.videoUrl);
-        data.append("chapterVideo", formData.videoUrl);
+        data.append("chapterVideo", formData.videoUrl || "");
       }
       data.append("chapterNo", formData.chapterNo);
       data.append("courseId", courseId);
@@ -298,7 +295,7 @@ export function CourseChapters({ initialChapters, courseId, courseName, loading,
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="flex justify-center items-center min-h-[70vh] items-center">
+        <div className="flex justify-center items-center min-h-[70vh]">
           <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary"></div>
         </div>
       </div>
@@ -493,7 +490,7 @@ export function CourseChapters({ initialChapters, courseId, courseName, loading,
 
       {/* Add/Edit Chapter Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent>
+        <DialogContent className="h-[730px]">
           <DialogHeader>
             <DialogTitle>{selectedChapter ? "Edit Chapter" : "Add New Chapter"}</DialogTitle>
           </DialogHeader>

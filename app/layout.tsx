@@ -6,7 +6,7 @@ import { Toaster } from '@/components/ui/sonner';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Valor Trading Academy',
+  title: 'EduFins Academy',
   description: 'Admin dashboard for course and algobot management',
   icons: {
     icon: '/images/logo.png', // Make sure this exists in your /public/images folder

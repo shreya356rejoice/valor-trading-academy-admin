@@ -142,18 +142,35 @@ export default function LiveWebinars() {
 console.log("hello----",formData.get("courseStart")?.toString());
 
 
-    // Validate dates (use courseStart/courseEnd set before validation)
+    // Validate dates
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time part for accurate date comparison
+    
     const startDate = formData.get("courseStart")?.toString();
     const endDate = formData.get("courseEnd")?.toString();
+    
+    // Parse dates for comparison
+    const startDateObj = startDate ? new Date(startDate) : null;
+    const endDateObj = endDate ? new Date(endDate) : null;
 
     if (!startDate) {
-      errors.startDate = "Date is required";
+      errors.startDate = "Course start date is required";
+    } else if (startDateObj && startDateObj < today) {
+      errors.startDate = "Course start date must be in the future";
     }
+
     if (!endDate) {
-      errors.endDate = "End date is required";
-    }
-    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
-      errors.dateRange = "End date must be after start date";
+      errors.endDate = "Registration end date is required";
+    } else if (endDateObj) {
+      // Check if registration end date is in the past
+      if (endDateObj < today) {
+        errors.endDate = "Registration end date must be in the future";
+      }
+      
+      // Check if registration end date is on or after course start date
+      if (startDateObj && endDateObj >= startDateObj) {
+        errors.dateRange = "Registration must end before the course starts";
+      }
     }
 
     // Image required on create (skip when editing)
@@ -444,15 +461,11 @@ console.log("hello----",formData.get("courseStart")?.toString());
   async function handleCourseSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    console.log("first");
-    
-
     // Prevent multiple submissions
-    // if (isSubmitting) return;
+    if (isSubmitting) return;
 
-    console.log("second");
-
-    // setIsSubmitting(true);
+    // Set submitting state
+    setIsSubmitting(true);
     setFormErrors({});
 
     try {
@@ -712,7 +725,19 @@ console.log("hello----",formData.get("courseStart")?.toString());
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
-                      <Calendar mode="single" selected={liveStartDate} onSelect={setLiveStartDate} initialFocus disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))} />
+                      <Calendar 
+                        mode="single" 
+                        selected={liveStartDate} 
+                        onSelect={(date) => {
+                          setLiveStartDate(date);
+                          // If current end date is after new start date, reset it
+                          if (date && liveEndDate && new Date(date) >= new Date(liveEndDate)) {
+                            setLiveEndDate(undefined);
+                          }
+                        }} 
+                        initialFocus 
+                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))} 
+                      />
                     </PopoverContent>
                   </Popover>
                   {formErrors.startDate && <div className="text-red-500">{formErrors.startDate}</div>}
@@ -727,7 +752,24 @@ console.log("hello----",formData.get("courseStart")?.toString());
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
-                      <Calendar mode="single" selected={liveEndDate} onSelect={setLiveEndDate} initialFocus disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))} />
+                      <Calendar 
+                        mode="single" 
+                        selected={liveEndDate} 
+                        onSelect={setLiveEndDate} 
+                        initialFocus 
+                        disabled={(date) => {
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          
+                          // Disable dates in the past
+                          if (date < today) return true;
+                          
+                          // Disable dates on or after the course start date
+                          if (liveStartDate && date >= new Date(liveStartDate)) return true;
+                          
+                          return false;
+                        }} 
+                      />
                     </PopoverContent>
                   </Popover>
                   {formErrors.endDate && <div className="text-red-500">{formErrors.endDate}</div>}
@@ -782,8 +824,20 @@ console.log("hello----",formData.get("courseStart")?.toString());
                 {formErrors.zoomLink && <div className="text-red-500">{formErrors.zoomLink}</div>}
               </div>
               <DialogFooter>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Saving..." : editCourse ? "Edit Live Webinars" : "Create Live Webinars"}
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="relative"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      {editCourse ? 'Updating...' : 'Creating...'}
+                    </>
+                  ) : editCourse ? 'Edit Live Webinars' : 'Create Live Webinars'}
                 </Button>
               </DialogFooter>
             </form>

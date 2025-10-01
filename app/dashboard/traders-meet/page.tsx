@@ -127,39 +127,41 @@ export default function TradersMeet() {
     }
 
     // Validate price (required and > 0)
-    // const priceValue = formData.get("price")?.toString();
     // const price = parseFloat(priceValue || "");
     // if (!priceValue || isNaN(price) || price <= 0) {
     //   errors.price = "Please enter a valid price greater than 0";
     // }
 
-    // Validate hours (required and > 0)
-    // const hoursValue = formData.get("hours")?.toString();
-    // const hours = parseFloat(hoursValue || "");
-    // if (!hoursValue || isNaN(hours) || hours <= 0) {
-    //   errors.hours = "Please enter valid hours greater than 0";
-    // }
-
-    // Validate dates (use courseStart/courseEnd set before validation)
+    // Validate dates
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time part for accurate date comparison
+    
     const startDate = formData.get("courseStart")?.toString();
     const endDate = formData.get("courseEnd")?.toString();
-
+    
+    // Parse dates for comparison
+    const startDateObj = startDate ? new Date(startDate) : null;
+    const endDateObj = endDate ? new Date(endDate) : null;
+    
     if (!startDate) {
-      errors.startDate = "Start date is required";
+      errors.startDate = "Meet date is required";
+    } else if (startDateObj && startDateObj < today) {
+      errors.startDate = "Meet date must be in the future";
     }
+
     if (!endDate) {
-      errors.endDate = "End date is required";
+      errors.endDate = "Registration end date is required";
+    } else if (endDateObj) {
+      // Check if registration end date is in the past
+      if (endDateObj < today) {
+        errors.endDate = "Registration end date must be in the future";
+      }
+      
+      // Check if registration end date is on or after the meet date
+      if (startDateObj && endDateObj >= startDateObj) {
+        errors.dateRange = "Registration must end before the meet date";
+      }
     }
-    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
-      errors.dateRange = "End date must be after start date";
-    }
-
-    // Image required on create (skip when editing)
-    const imageEntries = formData.getAll("image").filter((v) => v instanceof File && (v as File).size > 0) as File[];
-    if (!editCourse && imageEntries.length === 0) {
-      errors.image = "Please upload a image";
-    }
-
     if (courseType === "live") {
       if (!formData.get("zoomLink")?.toString().trim() && !editCourse?.meetingLink) {
         errors.zoomLink = "Zoom meeting link is required";
@@ -488,7 +490,6 @@ export default function TradersMeet() {
     } else if (modifier.toUpperCase() === "PM") {
       hours = String(parseInt(hours, 10) + 12);
     }
-  
     return `${hours.padStart(2, "0")}:${minutes.padStart(2, "0")}:00`;
   }
 
@@ -496,16 +497,14 @@ export default function TradersMeet() {
     e.preventDefault();
 
     // Prevent multiple submissions
-    // if (isSubmitting) return;
+    if (isSubmitting) return;
 
-    // setIsSubmitting(true);
+    // Set submitting state
+    setIsSubmitting(true);
     setFormErrors({});
 
     try {
       const formData = new FormData(e.currentTarget);
-      // const courseType = formData.get("courseType");
-
-      // Get the correct dates based on the active tab
       let startDate = "";
       let endDate = "";
 
@@ -519,95 +518,57 @@ export default function TradersMeet() {
       // Validate form
       const errors = validateForm(formData, "physical");
       
-      setFormErrors(errors);
-
       // If there are errors, stop submission
       if (Object.keys(errors).length > 0) {
+        setFormErrors(errors);
         setIsSubmitting(false);
         return;
       }
 
-      // Get the thumbnail image file if it exists
-      // const thumbnailImage = formData.get("image") as File | null;
-
       // Create a new FormData for the API request
       const apiFormData = new FormData();
-
       const courseTypeValue = "physical";
-
       const startTime = formData.get("startTime")?.toString() || "00:00:00";
       const endTime = formData.get("endTime")?.toString() || "00:00:00"; 
 
       // Add all form fields to the FormData
-      apiFormData.append("courseType", courseTypeValue || "");
+      apiFormData.append("courseType", courseTypeValue);
       apiFormData.append("CourseName", formData.get("name") || "");
       apiFormData.append("description", formData.get("description") || "");
-      // apiFormData.append("price", formData.get("price") || "0");
-      // apiFormData.append("hours", formData.get("hours") || "0");
       apiFormData.append("courseStart", startDate);
       apiFormData.append("courseEnd", endDate);
       apiFormData.append("startTime", formatTo12Hour(startTime));
       apiFormData.append("endTime", formatTo12Hour(endTime));
       apiFormData.append("instructor", formData.get("instructor") || "");
       apiFormData.append("language", formData.get("language") || "english");
-      
       apiFormData.append("location", formData.get("location") || "");
-        // apiFormData.append("email", formData.get("email") || "");
-        // apiFormData.append("phone", formData.get("phone") || "");
       
       if (imageFile) {
         apiFormData.append("image", imageFile);
       }
 
-      // Add the thumbnail image if it exists
-      //   if (thumbnailImage && thumbnailImage.size > 0) {
-      //     apiFormData.append("thumbnail", thumbnailImage);
-      //   }
+      let data;
+      if (editCourse && editCourse._id) {
+        // Update existing course
+        data = await updateCourse(editCourse._id, apiFormData);
+      } else {
+        // Create new course
+        data = await createCourse(apiFormData);
+      }
 
-      // Add course images if they exist (for recorded courses)
-      // const courseImages = formData.getAll("image") as File[];
-      // if (courseImages && courseImages.length > 0) {
-      //   courseImages.forEach((file, index) => {
-      //     apiFormData.append(`image`, file);
-      //   });
-      // }
-
-      try {
-        let data;
-        if (editCourse && editCourse._id) {
-          // Update existing course
-          data = await updateCourse(editCourse._id, apiFormData);
-        } else {
-          // Create new course
-          data = await createCourse(apiFormData);
-        }
-
-        if (data.success) {
-          setOpen(false);
-          setEditCourse(null);
-          toast.success(editCourse ? "Course updated successfully" : "Course created successfully", {
-            description: data?.message || (editCourse ? "The course has been updated." : "The course has been created."),
-          });
-          // Refresh course list
-          const refreshed = await getCourses();
-          setCourses(refreshed.payload.data);
-        } else {
-          toast.error(editCourse ? "Failed to update course" : "Failed to create course", {
-            description: data?.message || "An error occurred.",
-          });
-        }
-      } catch (err: any) {
-        if (err.response?.status === 413) {
-          toast.error("File too large", {
-            description: "The file you are trying to upload exceeds the maximum allowed size. Please try with a smaller file.",
-          });
-        } else {
-          toast.error("Failed to update course", {
-            description: err instanceof Error ? err.message : "An error occurred.",
-          });
-        }
-      } finally {
-        setIsSubmitting(false);
+      if (data.success) {
+        setOpen(false);
+        setEditCourse(null);
+        setImageFile(null);
+        toast.success(editCourse ? "Course updated successfully" : "Course created successfully", {
+          description: data?.message || (editCourse ? "The course has been updated." : "The course has been created."),
+        });
+        // Refresh course list
+        fetchCourses();
+      } else {
+        toast.error(editCourse ? "Failed to update course" : "Failed to create course", {
+          description: data?.message || "An error occurred.",
+        });
       }
     } catch (error: any) {
       console.error("Error submitting course:", error);
@@ -618,6 +579,7 @@ export default function TradersMeet() {
       } else {
         toast.error(error instanceof Error ? error.message : "Failed to save course");
       }
+    } finally {
       setIsSubmitting(false);
     }
   }
@@ -776,7 +738,19 @@ export default function TradersMeet() {
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
-                      <Calendar mode="single" selected={physicalStartDate} onSelect={setPhysicalStartDate} initialFocus disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))} />
+                      <Calendar 
+                        mode="single" 
+                        selected={physicalStartDate} 
+                        onSelect={(date) => {
+                          setPhysicalStartDate(date);
+                          // If current end date is after new start date, reset it
+                          if (date && physicalEndDate && new Date(date) >= new Date(physicalEndDate)) {
+                            setPhysicalEndDate(undefined);
+                          }
+                        }} 
+                        initialFocus 
+                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))} 
+                      />
                     </PopoverContent>
                   </Popover>
                   {formErrors.startDate && <div className="text-red-500">{formErrors.startDate}</div>}
@@ -791,7 +765,24 @@ export default function TradersMeet() {
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
-                      <Calendar mode="single" selected={physicalEndDate} onSelect={setPhysicalEndDate} initialFocus disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))} />
+                      <Calendar 
+                        mode="single" 
+                        selected={physicalEndDate} 
+                        onSelect={setPhysicalEndDate} 
+                        initialFocus 
+                        disabled={(date) => {
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          
+                          // Disable dates in the past
+                          if (date < today) return true;
+                          
+                          // Disable dates on or after the meet start date
+                          if (physicalStartDate && date >= new Date(physicalStartDate)) return true;
+                          
+                          return false;
+                        }} 
+                      />
                     </PopoverContent>
                   </Popover>
                   {formErrors.endDate && <div className="text-red-500">{formErrors.endDate}</div>}

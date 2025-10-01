@@ -57,18 +57,47 @@ export default function RichTextEditor({ value, onChange, className = '' }: Rich
       />
       <style jsx global>{`
         .ql-container {
-          min-height: 200px;
+          min-height: 170px;
+          max-height: 170px;
           font-size: 1rem;
+          display: flex;
+          flex-direction: column;
         }
         .ql-toolbar {
           border-radius: 0.375rem 0.375rem 0 0;
           background-color: #f9fafb;
+          flex-shrink: 0;
         }
         .ql-container {
           border-radius: 0 0 0.375rem 0.375rem;
+          overflow: hidden;
         }
         .ql-editor {
-          min-height: 150px;
+          min-height: 170px;
+          max-height: 170px;
+          overflow-y: auto;
+          padding: 12px 15px;
+          flex: 1;
+        }
+        .ql-editor.ql-blank::before {
+          left: 15px;
+          right: 15px;
+          width: auto;
+        }
+        /* Custom scrollbar for the editor */
+        .ql-editor::-webkit-scrollbar {
+          width: 6px;
+        }
+        .ql-editor::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 3px;
+        }
+        .ql-editor::-webkit-scrollbar-thumb {
+          background: #c1c1c1;
+          border-radius: 3px;
+        }
+        .ql-editor::-webkit-scrollbar-thumb:hover {
+          background: #a8a8a8;
         }
       `}</style>
     </div>
