@@ -6,7 +6,9 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import eduFinslogo from "../../public/images/eduFins-logo.png"
+import { useTheme } from 'next-themes';
+import eduFinsLogo from "../../public/images/eduFins-logo.png";
+import eduFinsWhiteLogo from "../../public/images/eduFins-whiteLogo.svg";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   LayoutDashboard,
@@ -124,6 +126,7 @@ export default function Sidebar() {
   const [user, setUser] = useState<{ name?: string; email?: string }>({});
   const pathname = usePathname();
   const router = useRouter();
+  const { theme } = useTheme();  
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -178,7 +181,7 @@ export default function Sidebar() {
           <div className="w-full relative">
             {!isCollapsed && (
               <Image
-                src={eduFinslogo}
+                src={theme === 'dark' ? eduFinsWhiteLogo : eduFinsLogo}
                 alt="Valor Trading Academy Logo"
                 fill
                 className="!relative max-w-[172px] h-auto"
